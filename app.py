@@ -253,4 +253,101 @@ elif st.session_state.page == 3:
                     y_clean = nr.reduce_noise(y=y, sr=sr)
                     y_norm = librosa.util.normalize(y_clean)
 
-                    mel_spec = librosa.feature
+                    mel_spec = librosa.feature.melspectrogram(y=y_norm, sr=sr, n_mels=128)
+                    mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
+                    mel_norm = (mel_spec_db - mel_spec_db.min()) / (mel_spec_db.max() - mel_spec_db.min() + 1e-8)
+
+                    mel_resized = tf.image.resize(mel_norm[..., np.newaxis], (128, 128)).numpy()
+                    img_input = np.expand_dims(mel_resized, axis=0)
+
+                    pred_prob = float(model.predict(img_input, verbose=0)[0][0])
+                    response_time = round(time.time() - start_time, 2)
+
+                    st.session_state.result_data = {
+                        "prob": pred_prob,
+                        "time": response_time,
+                        "mel_db": mel_spec_db,
+                        "sr": sr
+                    }
+                    st.session_state.page = 4
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Terjadi kendala saat memproses audio: {e}")
+
+    st.write("")
+    st.button("⬅ Kembali ke Panduan", on_click=go_to, args=(2,))
+
+# ==============================================================================
+# LAYAR 4: HASIL ANALISIS AI & MEL-SPECTROGRAM
+# ==============================================================================
+elif st.session_state.page == 4:
+    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Hasil Skrining • 4/5</span></div>", unsafe_allow_html=True)
+    res = st.session_state.result_data
+
+    if res is not None:
+        pred_prob = res["prob"]
+        if pred_prob >= 0.5:
+            conf = pred_prob * 100
+            st.markdown(f"""
+            <div class="mobile-card card-pink" style="text-align:center;">
+                <h3 style="color:#BE123C; margin:0;">Indikasi Gejala Bronkitis</h3>
+                <p style="font-size:0.9rem; margin-top:0.5rem;">
+                    Pola suara mengarah pada batuk berlendir/menyempit. Tetap tenang dan segera konsultasikan ke dokter atau Puskesmas terdekat.
+                </p>
+                <b style="color:#9F1239;">Keyakinan AI: {conf:.1f}% • Waktu: {res['time']} dtk</b>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            conf = (1 - pred_prob) * 100
+            st.markdown(f"""
+            <div class="mobile-card card-mint" style="text-align:center;">
+                <h3 style="color:#047857; margin:0;">Pola Batuk Normal</h3>
+                <p style="font-size:0.9rem; margin-top:0.5rem;">
+                    Tidak terdeteksi ciri khas bronkitis pada sampel suara ini. Terus pantau kondisi dan kecukupan cairan si kecil.
+                </p>
+                <b style="color:#065F46;">Keyakinan AI: {conf:.1f}% • Waktu: {res['time']} dtk</b>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("<p style='font-size:0.85rem; font-weight:700; margin-bottom:0.2rem;'>Grafik Mel-Spectrogram:</p>", unsafe_allow_html=True)
+        fig, ax = plt.subplots(figsize=(5, 2.4))
+        librosa.display.specshow(res["mel_db"], sr=res["sr"], x_axis='time', y_axis='mel', ax=ax, cmap='magma')
+        ax.set_xlabel("Waktu (detik)", fontsize=8)
+        ax.set_ylabel("Frekuensi", fontsize=8)
+        plt.tight_layout()
+        st.pyplot(fig)
+
+    col_r1, col_r2 = st.columns([1, 1.4])
+    with col_r1:
+        st.button("Cek Ulang", on_click=go_to, args=(3,))
+    with col_r2:
+        st.button("Baca Edukasi ➔", on_click=go_to, args=(5,))
+
+# ==============================================================================
+# LAYAR 5: EDUKASI SINGKAT (DENGAN BERUANG PINTAR)
+# ==============================================================================
+elif st.session_state.page == 5:
+    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Edukasi Singkat • 5/5</span></div>", unsafe_allow_html=True)
+    st.markdown(BEAR_EDU_SVG, unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align:center; color:#0369A1; margin-top:0;'>Info Singkat untuk Orang Tua</h3>", unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="mobile-card card-blue">
+        <b>Kenapa Batita Rentan?</b><br>
+        <span style="font-size:0.88rem;">Saluran napas anak di bawah 3 tahun masih sempit, sehingga peradangan mudah memicu lendir berlebih dan batuk berat.</span>
+    </div>
+    <div class="mobile-card card-pink">
+        <b>Tanda Bahaya (Segera ke Dokter)</b><br>
+        <span style="font-size:0.88rem;">Napas berbunyi ngik-ngik (<i>wheezing</i>), napas sangat cepat saat tenang, atau anak tampak lemas dan demam tinggi.</span>
+    </div>
+    <div class="mobile-card card-peach">
+        <b>Jauhkan Asap Rokok</b><br>
+        <span style="font-size:0.88rem;">Asap rokok di rumah memperparah iritasi saluran pernapasan batita. Jaga udara rumah tetap bersih.</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_e1, col_e2 = st.columns([1, 1.3])
+    with col_e1:
+        st.button("⬅ Hasil", on_click=go_to, args=(4,))
+    with col_e2:
+        st.button("Kembali ke Awal", on_click=go_to, args=(1,))
