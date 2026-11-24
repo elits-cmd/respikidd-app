@@ -37,18 +37,37 @@ st.markdown("""
     }
 
     /* Bingkai Layar Mobile App Cerah dengan Doodle Halus di Dalam */
+    /* Agar bingkai HP selalu pas di tengah layar */
+    .main {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+
+    /* Bingkai Layar Mobile App: Tinggi Otomatis Menyesuaikan Isi Teks */
+/* Agar bingkai HP selalu pas di tengah layar */
+    .main {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+
+    /* Bingkai Layar Mobile App: Tinggi Otomatis Menyesuaikan Isi Teks */
     .block-container {
-        max-width: 430px !important;
+        max-width: 420px !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: fit-content !important;
         background-color: #FFFDF7 !important;
         background-image: radial-gradient(#FDE68A 1.2px, transparent 1.2px), radial-gradient(#BAE6FD 1.2px, #FFFDF7 1.2px);
         background-size: 36px 36px;
         background-position: 0 0, 18px 18px;
-        min-height: 92vh;
-        margin-top: 1.2rem;
-        margin-bottom: 1.2rem;
-        padding: 1.6rem 1.35rem !important;
-        border-radius: 38px;
-        border: 8px solid #FFFFFF;
+        margin: 1.5rem auto !important;
+        padding: 1.6rem 1.35rem 1.8rem 1.35rem !important;
+        border-radius: 36px;
+        border: 7px solid #FFFFFF;
         box-shadow: 0 18px 40px rgba(56, 189, 248, 0.22), 0 0 0 3px #BAE6FD;
     }
 
