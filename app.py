@@ -10,356 +10,247 @@ import os
 
 # 1. Konfigurasi Halaman
 st.set_page_config(
-    page_title="RespiKidd | Sahabat Pernapasan Si Kecil",
-    page_icon="🐱",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="RespiKidd Mobile App",
+    page_icon="🐾",
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
-# 2. Custom CSS Tema Pastel Ramah Anak (Anti-Trauma)
+# 2. Custom CSS: Mengubah Tampilan Menjadi Layar Mobile App Pastel
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap');
-    
-    /* Latar Belakang Utama Krem Lembut */
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap');
+
+    /* Sembunyikan elemen bawaan Streamlit agar mirip aplikasi HP murni */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    [data-testid="stSidebar"] {display: none;}
+
+    /* Latar luar (Desktop) bernuansa pastel lembut */
     .stApp {
-        background-color: #FFFDF9;
-        font-family: 'Quicksand', sans-serif;
-        color: #334155;
+        background-color: #F3F6FA;
+        font-family: 'Nunito', sans-serif;
+    }
+
+    /* Bingkai Layar Mobile App di Tengah */
+    .block-container {
+        max-width: 430px !important;
+        background-color: #FFFDF9 !important;
+        min-height: 92vh;
+        margin-top: 1.5rem;
+        margin-bottom: 1.5rem;
+        padding: 1.8rem 1.4rem !important;
+        border-radius: 36px;
+        border: 8px solid #E2E8F0;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
     }
 
     h1, h2, h3, h4, p, div, span, label {
-        font-family: 'Quicksand', sans-serif !important;
+        font-family: 'Nunito', sans-serif !important;
+        color: #334155;
     }
 
-    /* Sidebar Pastel */
-    [data-testid="stSidebar"] {
-        background-color: #F0F9FF;
-        border-right: 2px dashed #BAE6FD;
-    }
-
-    /* Kartu Sambutan Utama */
-    .pastel-hero {
-        background: linear-gradient(135deg, #E0F2FE 0%, #FFEDD5 100%);
-        padding: 2rem;
-        border-radius: 24px;
-        border: 2px solid #FDE68A;
-        box-shadow: 0 8px 20px rgba(251, 191, 36, 0.12);
-        margin-bottom: 1.5rem;
-    }
-
-    /* Kartu Langkah Panduan */
-    .step-card {
-        background-color: #FFFFFF;
-        padding: 1.4rem;
-        border-radius: 20px;
-        border: 2px solid #E2E8F0;
-        box-shadow: 0 4px 12px rgba(148, 163, 184, 0.08);
-        height: 100%;
-    }
-    .step-badge {
-        display: inline-block;
-        background-color: #FDBA74;
-        color: #7C2D12;
+    /* Indikator Halaman (Step Bar) */
+    .step-indicator {
+        text-align: center;
+        font-size: 0.8rem;
         font-weight: 700;
-        padding: 0.25rem 0.8rem;
+        color: #0284C7;
+        background-color: #E0F2FE;
+        padding: 0.35rem 0.9rem;
         border-radius: 999px;
-        font-size: 0.85rem;
-        margin-bottom: 0.6rem;
-    }
-
-    /* Kartu Edukasi */
-    .edu-card {
-        background-color: #FFFFFF;
-        padding: 1.5rem;
-        border-radius: 20px;
-        border-left: 6px solid #7DD3FC;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        display: inline-block;
         margin-bottom: 1rem;
     }
 
-    /* Kartu Hasil Deteksi Ramah Orang Tua */
-    .result-pastel-warn {
-        background-color: #FFF1F2;
-        border: 2px solid #FDA4AF;
-        border-left: 8px solid #FB7185;
-        padding: 1.5rem;
-        border-radius: 20px;
-        color: #881337;
-    }
-    .result-pastel-safe {
-        background-color: #ECFDF5;
-        border: 2px solid #6EE7B7;
-        border-left: 8px solid #34D399;
-        padding: 1.5rem;
-        border-radius: 20px;
-        color: #065F46;
+    /* Kartu Pastel Mobile */
+    .mobile-card {
+        background-color: #FFFFFF;
+        border-radius: 22px;
+        padding: 1.2rem;
+        margin-bottom: 0.9rem;
+        border: 2px solid #F1F5F9;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     }
 
-    /* Tombol Pastel Lembut */
+    .card-blue { background-color: #F0F9FF; border-color: #BAE6FD; }
+    .card-peach { background-color: #FFF7ED; border-color: #FED7AA; }
+    .card-mint { background-color: #ECFDF5; border-color: #A7F3D0; }
+    .card-pink { background-color: #FFF1F2; border-color: #FECDD3; }
+
+    /* Tombol Utama Mobile (Besar & Membulat) */
     .stButton>button {
-        background: linear-gradient(90deg, #38BDF8 0%, #60A5FA 100%);
+        width: 100%;
+        border-radius: 18px !important;
+        padding: 0.75rem 1rem !important;
+        font-weight: 800 !important;
+        font-size: 1rem !important;
+        border: none !important;
+        background: linear-gradient(135deg, #38BDF8 0%, #60A5FA 100%) !important;
         color: white !important;
-        border: none;
-        border-radius: 16px;
-        padding: 0.75rem 1.5rem;
-        font-weight: 700;
-        font-size: 1.05rem;
-        box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
-        transition: all 0.2s ease;
+        box-shadow: 0 6px 15px rgba(56, 189, 248, 0.3);
+        transition: 0.2s;
     }
     .stButton>button:hover {
-        transform: translateY(-2px);
-        background: linear-gradient(90deg, #0284C7 0%, #3B82F6 100%);
+        transform: scale(1.02);
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Inisialisasi Navigasi Halaman (Default: Halaman Panduan Pertama)
-if "menu" not in st.session_state:
-    st.session_state.menu = "🏠 Panduan & Cara Pakai"
+# Ilustrasi Vektor SVG Beruang Pastel Lucu (Bukan Emoji)
+BEAR_GUIDE_SVG = """
+<div style="text-align:center; margin: 0.5rem 0;">
+<svg width="110" height="110" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Telinga -->
+  <circle cx="52" cy="55" r="24" fill="#D4A373"/>
+  <circle cx="52" cy="55" r="13" fill="#FAEDCD"/>
+  <circle cx="148" cy="55" r="24" fill="#D4A373"/>
+  <circle cx="148" cy="55" r="13" fill="#FAEDCD"/>
+  <!-- Kepala -->
+  <circle cx="100" cy="105" r="62" fill="#E6B88A"/>
+  <!-- Moncong -->
+  <ellipse cx="100" cy="122" rx="26" ry="20" fill="#FEFAE0"/>
+  <!-- Mata & Pipi -->
+  <circle cx="76" cy="96" r="6" fill="#3D2C2E"/>
+  <circle cx="78" cy="94" r="2" fill="#FFFFFF"/>
+  <circle cx="124" cy="96" r="6" fill="#3D2C2E"/>
+  <circle cx="126" cy="94" r="2" fill="#FFFFFF"/>
+  <ellipse cx="63" cy="112" rx="9" ry="5" fill="#FFB5A7" opacity="0.7"/>
+  <ellipse cx="137" cy="112" rx="9" ry="5" fill="#FFB5A7" opacity="0.7"/>
+  <!-- Hidung & Senyum -->
+  <ellipse cx="100" cy="114" rx="8" ry="5" fill="#5C4033"/>
+  <path d="M 90 126 Q 100 135 110 126" stroke="#5C4033" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <!-- Syal Biru Pastel -->
+  <path d="M 55 158 Q 100 175 145 158 L 138 180 Q 100 192 62 180 Z" fill="#90E0EF"/>
+</svg>
+</div>
+"""
 
-def pindah_menu(nama_menu):
-    st.session_state.menu = nama_menu
+BEAR_EDU_SVG = """
+<div style="text-align:center; margin: 0.5rem 0;">
+<svg width="110" height="110" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Telinga Beruang Putih Krem -->
+  <circle cx="52" cy="58" r="23" fill="#EDE0D4"/>
+  <circle cx="52" cy="58" r="12" fill="#FFB5A7"/>
+  <circle cx="148" cy="58" r="23" fill="#EDE0D4"/>
+  <circle cx="148" cy="58" r="12" fill="#FFB5A7"/>
+  <!-- Kepala -->
+  <circle cx="100" cy="108" r="60" fill="#F5EBE0"/>
+  <!-- Moncong -->
+  <ellipse cx="100" cy="124" rx="24" ry="18" fill="#FFFFFF"/>
+  <!-- Mata & Kacamata Bulat Lucu -->
+  <circle cx="76" cy="98" r="5.5" fill="#334155"/>
+  <circle cx="124" cy="98" r="5.5" fill="#334155"/>
+  <circle cx="76" cy="98" r="16" stroke="#7BDFF2" stroke-width="3.5" fill="none"/>
+  <circle cx="124" cy="98" r="16" stroke="#7BDFF2" stroke-width="3.5" fill="none"/>
+  <line x1="92" y1="98" x2="108" y2="98" stroke="#7BDFF2" stroke-width="3.5"/>
+  <!-- Pipi & Hidung -->
+  <ellipse cx="62" cy="115" rx="8" ry="5" fill="#FFCAD4"/>
+  <ellipse cx="138" cy="115" rx="8" ry="5" fill="#FFCAD4"/>
+  <ellipse cx="100" cy="116" rx="7" ry="4.5" fill="#7F5539"/>
+  <path d="M 92 127 Q 100 134 108 127" stroke="#7F5539" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>
+</div>
+"""
 
-# 3. Sidebar dengan Maskot & Navigasi
-with st.sidebar:
-    col_img1, col_img2, col_img3 = st.columns([1, 2.5, 1])
-    with col_img2:
-        if os.path.exists("mascot.png"):
-            st.image("mascot.png", use_container_width=True)
-        else:
-            st.markdown("<h1 style='text-align:center; font-size:4rem;'>🐱🩺</h1>", unsafe_allow_html=True)
-            
-    st.markdown("<h2 style='text-align:center; color:#0369A1; margin-top:0;'>RespiKidd</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; font-size:0.9rem; color:#64748B;'>Sahabat Skrining Pernapasan Batita yang Ramah & Bebas Trauma</p>", unsafe_allow_html=True)
-    st.divider()
-    
-    # Pilihan Halaman
-    pilihan = st.radio(
-        "Pilih Halaman:",
-        ["🏠 Panduan & Cara Pakai", "🩺 Cek Suara Batuk (AI)", "📚 Edukasi Bronkitis Anak"],
-        index=["🏠 Panduan & Cara Pakai", "🩺 Cek Suara Batuk (AI)", "📚 Edukasi Bronkitis Anak"].index(st.session_state.menu)
-    )
-    st.session_state.menu = pilihan
-    
-    st.divider()
-    st.caption("🏆 **ISPO 2026 — Bidang Komputer**")
-    st.caption("Keyza Elita K. E. & Mahirah Alya S.\nPakar Belia Islamic Boarding School")
+# Inisialisasi State Halaman (1 sampai 5)
+if "page" not in st.session_state:
+    st.session_state.page = 1
+if "result_data" not in st.session_state:
+    st.session_state.result_data = None
 
-# Load Model CNN
+def go_to(page_num):
+    st.session_state.page = page_num
+
 @st.cache_resource
 def load_respikidd_model():
     return tf.keras.models.load_model('respikidd_model.keras')
 
 # ==============================================================================
-# HALAMAN 1: SAMBUTAN & CARA PENGGUNAAN APLIKASI (HALAMAN PERTAMA)
+# LAYAR 1: SPLASH & SAMBUTAN MASKOT UTAMA
 # ==============================================================================
-if st.session_state.menu == "🏠 Panduan & Cara Pakai":
+if st.session_state.page == 1:
+    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Selamat Datang • 1/5</span></div>", unsafe_allow_html=True)
     
-    # Banner Sambutan dengan Maskot
-    st.markdown('<div class="pastel-hero">', unsafe_allow_html=True)
-    c1, c2 = st.columns([1, 3], vertical_alignment="center")
-    with c1:
+    c1, c2, c3 = st.columns([1, 3, 1])
+    with c2:
         if os.path.exists("mascot.png"):
             st.image("mascot.png", use_container_width=True)
         else:
-            st.markdown("<div style='font-size:5rem; text-align:center;'>🐱🩺</div>", unsafe_allow_html=True)
-    with c2:
-        st.markdown("<h1 style='color:#0C4A6E; margin-bottom:0.3rem;'>Halo Ayah, Bunda & Si Kecil! 👋</h1>", unsafe_allow_html=True)
-        st.markdown("""
-        <p style='font-size:1.1rem; color:#334155; line-height:1.6;'>
-        Selamat datang di <b>RespiKidd</b>! Kami dirancang khusus agar pemeriksaan awal batuk si kecil terasa nyaman, menyenangkan, dan <b>tanpa alat medis yang menakutkan</b>. Cukup rekam suara batuk lewat HP, AI kami akan membantu mendeteksi apakah ada tanda-tanda mengarah ke bronkitis.
+            st.markdown("<h1 style='text-align:center;'>RespiKidd</h1>", unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="text-align:center; padding: 0.5rem 0 1.5rem 0;">
+        <h2 style="color:#0369A1; margin-bottom:0.4rem;">Halo Ayah & Bunda!</h2>
+        <p style="font-size:0.98rem; color:#475569; line-height:1.5;">
+            <b>RespiKidd</b> membantu skrining dini gejala bronkitis pada batita lewat suara batuk dengan cara yang lembut, cepat, dan <b>tidak membuat anak takut</b>.
         </p>
-        """, unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown("### 📖 Cara Penggunaan Aplikasi RespiKidd")
-    st.write("Ikuti 4 langkah mudah berikut sebelum melakukan pengecekan:")
-
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.markdown("""
-        <div class="step-card">
-            <span class="step-badge">Langkah 1</span>
-            <h4>🧸 Buat Anak Nyaman</h4>
-            <p style="font-size:0.95rem;">Pastikan si kecil dalam posisi tenang dan nyaman. Jauhkan dari suara TV atau keramaian agar rekaman suara batuk terdengar jernih.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    with col2:
-        st.markdown("""
-        <div class="step-card">
-            <span class="step-badge">Langkah 2</span>
-            <h4>🎤 Rekam / Unggah</h4>
-            <p style="font-size:0.95rem;">Buka menu <b>Cek Suara Batuk</b>, dekatkan mikrofon HP sekitar 15–20 cm dari anak saat batuk, atau unggah file rekaman (.wav/.mp3).</p>
-        </div>
-        """, unsafe_allow_html=True)
-    with col3:
-        st.markdown("""
-        <div class="step-card">
-            <span class="step-badge">Langkah 3</span>
-            <h4>✨ Analisis Cerdas AI</h4>
-            <p style="font-size:0.95rem;">Sistem otomatis membersihkan bising latar, mengubah suara menjadi grafik warna <i>Mel-Spectrogram</i>, lalu membacanya dengan Deep Learning.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    with col4:
-        st.markdown("""
-        <div class="step-card">
-            <span class="step-badge">Langkah 4</span>
-            <h4>🩺 Langkah Lanjutan</h4>
-            <p style="font-size:0.95rem;">Lihat hasil skrining dalam hitungan detik. Gunakan hasil ini sebagai panduan awal sebelum berkonsultasi dengan dokter atau Puskesmas.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.write("")
-    st.write("")
-    btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
-    with btn_col2:
-        st.button("🚀 Mulai Cek Suara Batuk Sekarang", on_click=pindah_menu, args=("🩺 Cek Suara Batuk (AI)",), use_container_width=True)
+    st.button("Mulai Sekarang ➔", on_click=go_to, args=(2,))
 
 # ==============================================================================
-# HALAMAN 2: DETEKSI SUARA BATUK (AI & MEL-SPECTROGRAM)
+# LAYAR 2: PANDUAN CARA PENGGUNAAN (DENGAN BERUANG LUCU)
 # ==============================================================================
-elif st.session_state.menu == "🩺 Cek Suara Batuk (AI)":
-    st.markdown("<h2 style='color:#0369A1;'>🩺 Pemeriksaan Suara Batuk Si Kecil</h2>", unsafe_allow_html=True)
-    st.write("Rekam suara batuk secara langsung atau unggah rekaman suara yang sudah tersimpan.")
+elif st.session_state.page == 2:
+    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Cara Pakai • 2/5</span></div>", unsafe_allow_html=True)
+    st.markdown(BEAR_GUIDE_SVG, unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align:center; color:#0369A1; margin-top:0;'>Cara Menggunakan Aplikasi</h3>", unsafe_allow_html=True)
 
-    try:
-        model = load_respikidd_model()
-    except Exception as e:
-        st.error(f"Model AI belum ditemukan (`respikidd_model.keras`). Detail: {e}")
-        st.stop()
+    st.markdown("""
+    <div class="mobile-card card-blue">
+        <b>1. Tenangkan Si Kecil</b><br>
+        <span style="font-size:0.9rem;">Pastikan suasana sekitar cukup tenang agar suara batuk terekam jelas.</span>
+    </div>
+    <div class="mobile-card card-peach">
+        <b>2. Rekam / Unggah Suara</b><br>
+        <span style="font-size:0.9rem;">Dekatkan HP sekitar 15–20 cm saat anak batuk, atau pilih file rekaman audio.</span>
+    </div>
+    <div class="mobile-card card-mint">
+        <b>3. Lihat Hasil & Edukasi</b><br>
+        <span style="font-size:0.9rem;">AI akan menganalisis pola suara dalam hitungan detik beserta panduan langkah berikutnya.</span>
+    </div>
+    """, unsafe_allow_html=True)
 
-    col_left, col_right = st.columns([1, 1.3], gap="large")
-
-    with col_left:
-        st.markdown("#### 1. Masukkan Sampel Suara")
-        tab1, tab2 = st.tabs(["🎤 Rekam Langsung", "📂 Unggah File Audio"])
-        audio_data = None
-        
-        with tab1:
-            recorded_audio = st.audio_input("Tekan ikon mikrofon untuk merekam batuk:")
-            if recorded_audio:
-                audio_data = recorded_audio
-                
-        with tab2:
-            uploaded_audio = st.file_uploader("Pilih file rekaman (.wav / .mp3 / .ogg):", type=["wav", "mp3", "ogg"])
-            if uploaded_audio:
-                audio_data = uploaded_audio
-
-        if audio_data is not None:
-            st.audio(audio_data)
-            analyze_btn = st.button("🔍 Analisis Suara Batuk", use_container_width=True)
-        else:
-            st.info("🐱 **Kata Dokter Kucing:** Pastikan rekaman berisi suara batuk si kecil selama 1–3 detik ya!")
-            analyze_btn = False
-
-    with col_right:
-        st.markdown("#### 2. Hasil Skrining & Grafik Suara")
-        if audio_data is not None and analyze_btn:
-            with st.spinner("Dokter Kucing sedang mendengarkan dan menganalisis gelombang suara..."):
-                start_time = time.time()
-                
-                # Preprocessing Audio
-                y, sr = librosa.load(audio_data, sr=22050, duration=3.0)
-                y_clean = nr.reduce_noise(y=y, sr=sr)
-                y_norm = librosa.util.normalize(y_clean)
-                
-                # Mel-Spectrogram
-                mel_spec = librosa.feature.melspectrogram(y=y_norm, sr=sr, n_mels=128)
-                mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
-                mel_norm = (mel_spec_db - mel_spec_db.min()) / (mel_spec_db.max() - mel_spec_db.min() + 1e-8)
-                
-                # Resize ke (1, 128, 128, 1)
-                mel_resized = tf.image.resize(mel_norm[..., np.newaxis], (128, 128)).numpy()
-                img_input = np.expand_dims(mel_resized, axis=0)
-                
-                # Prediksi
-                pred_prob = float(model.predict(img_input, verbose=0)[0][0])
-                response_time = round(time.time() - start_time, 2)
-
-            if pred_prob >= 0.5:
-                confidence = pred_prob * 100
-                st.markdown(f"""
-                <div class="result-pastel-warn">
-                    <h3 style="margin:0; color:#9F1239;">🧡 Terdeteksi Indikasi Gejala Bronkitis</h3>
-                    <p style="margin-top:0.5rem; margin-bottom:0;">
-                        Ayah & Bunda tidak perlu panik, namun pola suara batuk si kecil memiliki karakteristik berlendir/menyempit yang mengarah pada bronkitis. Sebaiknya segera periksakan ke dokter anak atau Puskesmas terdekat untuk penanganan tepat.
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                confidence = (1 - pred_prob) * 100
-                st.markdown(f"""
-                <div class="result-pastel-safe">
-                    <h3 style="margin:0; color:#047857;">💚 Pola Suara Batuk Normal (Non-Bronkitis)</h3>
-                    <p style="margin-top:0.5rem; margin-bottom:0;">
-                        Kabar baik! Tidak terdeteksi penanda khas bronkitis pada rekaman suara ini. Tetap berikan ASI/air putih hangat yang cukup dan pantau suhu tubuh si kecil.
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-
-            st.write("")
-            m1, m2, m3 = st.columns(3)
-            m1.metric("Tingkat Keyakinan AI", f"{confidence:.1f}%")
-            m2.metric("Kecepatan Proses", f"{response_time} detik")
-            m3.metric("Dimensi Citra CNN", "128 × 128 px")
-
-            st.markdown("**Grafik Visualisasi Mel-Spectrogram (Setelah Denoising):**")
-            fig, ax = plt.subplots(figsize=(8, 3))
-            img = librosa.display.specshow(mel_spec_db, sr=sr, x_axis='time', y_axis='mel', ax=ax, cmap='magma')
-            fig.colorbar(img, ax=ax, format='%+2.0f dB')
-            ax.set_title("Pola Frekuensi Suara Batuk Balita", fontsize=10)
-            plt.tight_layout()
-            st.pyplot(fig)
-        else:
-            st.markdown("""
-            <div style="background-color:#FFFFFF; border: 2px dashed #BAE6FD; border-radius: 20px; padding: 3rem; text-align: center; color: #64748B;">
-                <h4>Belum Ada Rekaman yang Dianalisis</h4>
-                <p>Rekam atau unggah sampel suara di sebelah kiri, lalu tekan tombol <b>Analisis Suara Batuk</b>.</p>
-            </div>
-            """, unsafe_allow_html=True)
+    col_b1, col_b2 = st.columns([1, 2])
+    with col_b1:
+        st.button("⬅ Kembali", on_click=go_to, args=(1,))
+    with col_b2:
+        st.button("Lanjut Cek Batuk ➔", on_click=go_to, args=(3,))
 
 # ==============================================================================
-# HALAMAN 3: EDUKASI KESEHATAN PERNAPASAN ANAK
+# LAYAR 3: REKAM / UNGGAH SUARA BATUK
 # ==============================================================================
-elif st.session_state.menu == "📚 Edukasi Bronkitis Anak":
-    st.markdown("<h2 style='color:#0369A1;'>📚 Pojok Edukasi Ayah & Bunda</h2>", unsafe_allow_html=True)
-    st.write("Informasi ringkas mengenai kesehatan saluran napas batita (usia di bawah 3 tahun).")
+elif st.session_state.page == 3:
+    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Cek Suara • 3/5</span></div>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align:center; color:#0369A1;'>Masukkan Suara Batuk</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; font-size:0.9rem;'>Pilih rekam langsung lewat mikrofon HP atau unggah rekaman (.wav / .mp3).</p>", unsafe_allow_html=True)
 
-    col_ed1, col_ed2 = st.columns(2, gap="medium")
+    tab1, tab2 = st.tabs(["Rekam Suara", "Unggah File"])
+    audio_data = None
 
-    with col_ed1:
-        st.markdown("""
-        <div class="edu-card">
-            <h4 style="color:#0284C7; margin-top:0;">🫁 Apa Itu Bronkitis pada Batita?</h4>
-            <p>Bronkitis adalah peradangan pada saluran udara utama (bronkus) yang umumnya dipicu oleh infeksi virus. Karena saluran napas anak di bawah usia 3 tahun masih sangat sempit dan sistem imunnya belum sempurna, pembengkakan dan lendir berlebih membuat napas serta batuk anak terdengar lebih berat dan basah.</p>
-        </div>
-        """, unsafe_allow_html=True)
+    with tab1:
+        rec = st.audio_input("Tekan ikon mic untuk merekam:")
+        if rec:
+            audio_data = rec
 
-        st.markdown("""
-        <div class="edu-card" style="border-left-color: #FDBA74;">
-            <h4 style="color:#C2410C; margin-top:0;">🚭 Waspada Bahaya Asap Rokok!</h4>
-            <p>Paparan asap rokok di lingkungan rumah terbukti memperparah kerentanan batita terhadap infeksi saluran pernapasan bawah. Pastikan rumah bebas dari asap rokok dan polusi debu agar saluran napas anak tetap sehat.</p>
-        </div>
-        """, unsafe_allow_html=True)
+    with tab2:
+        upl = st.file_uploader("Pilih file audio batuk:", type=["wav", "mp3", "ogg"])
+        if upl:
+            audio_data = upl
 
-    with col_ed2:
-        st.markdown("""
-        <div class="edu-card" style="border-left-color: #FDA4AF;">
-            <h4 style="color:#BE123C; margin-top:0;">🚨 Tanda Bahaya yang Wajib Segera ke Dokter</h4>
-            <ul>
-                <li><b>Wheezing (Mengi):</b> Terdengar suara siulan nyaring saat anak menghembuskan napas.</li>
-                <li><b>Takipnea (Napas Cepat):</b> Napas anak tampak sangat cepat dan terengah-engah meski sedang tenang/tidur.</li>
-                <li><b>Tarikan Dinding Dada:</b> Kulit di sela tulang iga atau leher tampak tertarik ke dalam saat menarik napas.</li>
-                <li>Anak tampak sangat lemas, demam tinggi, atau menolak menyusu/minum.</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+    if audio_data is not None:
+        st.audio(audio_data)
+        if st.button("Analisis Suara Sekarang ✨"):
+            with st.spinner("Sedang menganalisis suara batuk..."):
+                try:
+                    model = load_respikidd_model()
+                    start_time = time.time()
 
-        st.markdown("""
-        <div class="edu-card" style="border-left-color: #6EE7B7;">
-            <h4 style="color:#047857; margin-top:0;">💧 Perawatan Awal di Rumah</h4>
-            <p>Jaga cairan tubuh anak dengan memberikan lebih banyak ASI atau air hangat untuk membantu mengencerkan lendir, gunakan pelembap udara ruangan bila perlu, dan selalu gunakan <b>RespiKidd</b> hanya sebagai alat skrining awal—bukan pengganti diagnosis dokter.</p>
-        </div>
-        """, unsafe_allow_html=True)
+                    y, sr = librosa.load(audio_data, sr=22050, duration=3.0)
+                    y_clean = nr.reduce_noise(y=y, sr=sr)
+                    y_norm = librosa.util.normalize(y_clean)
+
+                    mel_spec = librosa.feature
