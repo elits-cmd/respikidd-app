@@ -14,9 +14,7 @@ st.set_page_config(
     page_icon="assets/logo.png" if os.path.exists("assets/logo.png") else "🐾",
     layout="centered",
     initial_sidebar_state="collapsed"
-)
-
-# 2. Custom CSS: Background Cerah + Pola Doodle Gemoy + Layar Mobile Pastel
+# 2. Custom CSS: Background Cerah + Pola Doodle Gemoy + Layar Mobile Pastel (FIXED)
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap');
@@ -36,33 +34,25 @@ st.markdown("""
         font-family: 'Nunito', sans-serif;
     }
 
-    .main {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-    }
-
-    /* Bingkai Layar Mobile App */
-    .block-container {
-        max-width: 420px !important;
-        width: 100% !important;
-        height: auto !important;
-        min-height: fit-content !important;
+    /* Bingkai Layar Mobile App (Tanpa merusak flex container bawaan Streamlit) */
+    [data-testid="stMainBlockContainer"], .block-container {
+        max-width: 440px !important;
+        width: 92% !important;
         background-color: #FFFDF7 !important;
         background-image: radial-gradient(#FDE68A 1.2px, transparent 1.2px), radial-gradient(#BAE6FD 1.2px, #FFFDF7 1.2px);
         background-size: 36px 36px;
         background-position: 0 0, 18px 18px;
-        margin: 1.5rem auto !important;
-        padding: 1.6rem 1.35rem 1.8rem 1.35rem !important;
-        border-radius: 36px;
-        border: 7px solid #FFFFFF;
-        box-shadow: 0 18px 40px rgba(56, 189, 248, 0.22), 0 0 0 3px #BAE6FD;
+        margin-top: 2rem !important;
+        margin-bottom: 2rem !important;
+        padding: 1.8rem 1.4rem 2rem 1.4rem !important;
+        border-radius: 36px !important;
+        border: 7px solid #FFFFFF !important;
+        box-shadow: 0 18px 40px rgba(56, 189, 248, 0.22), 0 0 0 3px #BAE6FD !important;
     }
 
     h1, h2, h3 {
         font-family: 'Fredoka', sans-serif !important;
-        color: #0369A1;
+        color: #0369A1 !important;
         letter-spacing: 0.3px;
     }
 
@@ -76,7 +66,7 @@ st.markdown("""
         text-align: center;
         font-size: 0.82rem;
         font-weight: 800;
-        color: #9A3412;
+        color: #9A3412 !important;
         background: linear-gradient(90deg, #FEF08A 0%, #FED7AA 100%);
         padding: 0.35rem 1rem;
         border-radius: 999px;
@@ -96,16 +86,35 @@ st.markdown("""
         box-shadow: 0 6px 14px rgba(148, 163, 184, 0.1);
     }
 
-    .card-blue { background-color: #F0F9FF; border-color: #7DD3FC; }
-    .card-peach { background-color: #FFF7ED; border-color: #FDBA74; }
-    .card-mint { background-color: #ECFDF5; border-color: #6EE7B7; }
-    .card-pink { background-color: #FFF1F2; border-color: #FDA4AF; }
-    .card-yellow { background-color: #FEFCE8; border-color: #FDE047; }
+    .card-blue { background-color: #F0F9FF !important; border-color: #7DD3FC !important; }
+    .card-peach { background-color: #FFF7ED !important; border-color: #FDBA74 !important; }
+    .card-mint { background-color: #ECFDF5 !important; border-color: #6EE7B7 !important; }
+    .card-pink { background-color: #FFF1F2 !important; border-color: #FDA4AF !important; }
+    .card-yellow { background-color: #FEFCE8 !important; border-color: #FDE047 !important; }
 
     /* Tombol Utama Mobile Ceria & Bouncy */
     .stButton>button {
         width: 100%;
         border-radius: 20px !important;
+        padding: 0.75rem 1rem !important;
+        font-family: 'Fredoka', sans-serif !important;
+        font-weight: 600 !important;
+        font-size: 1.05rem !important;
+        border: 2px solid #FFFFFF !important;
+        background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%) !important;
+        color: white !important;
+        box-shadow: 0 6px 16px rgba(56, 189, 248, 0.35);
+        transition: all 0.2s ease;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px) scale(1.02);
+        background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%) !important;
+    }
+    .stButton>button p {
+        color: white !important;
+    }
+</style>
+""", unsafe_allow_html=True)
         padding: 0.75rem 1rem !important;
         font-family: 'Fredoka', sans-serif !important;
         font-weight: 600 !important;
