@@ -7,7 +7,11 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import time
 import os
-
+st.set_page_config(
+    page_title="RespiKidd App",
+    page_icon="assets/logo.png",  # Ganti dengan path file gambar Anda
+    layout="wide"
+)
 # 1. Konfigurasi Halaman
 st.set_page_config(
     page_title="RespiKidd Mobile App",
