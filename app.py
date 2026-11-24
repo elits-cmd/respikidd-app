@@ -371,8 +371,9 @@ elif st.session_state.page == 4:
 
     if res is not None:
         pred_prob = res["prob"]
-        if pred_prob >= 0.75:
-            conf = pred_prob * 100
+# Since alphabetical order sets 0 = bronkitis and 1 = non_bronkitis:
+        if pred_prob <= 0.5:
+            conf = (1 - pred_prob) * 100
             st.markdown(f"""
             <div class="mobile-card card-pink" style="text-align:center;">
                 <h3 style="color:#BE123C; margin:0;">Indikasi Gejala Bronkitis</h3>
@@ -383,17 +384,17 @@ elif st.session_state.page == 4:
             </div>
             """, unsafe_allow_html=True)
         else:
-            conf = (1 - pred_prob) * 100
+            conf = pred_prob * 100
             st.markdown(f"""
             <div class="mobile-card card-mint" style="text-align:center;">
-                <h3 style="color:#047857; margin:0;">Pola Batuk Normal</h3>
+                <h3 style="color:#047857; margin:0;">Pola Batuk Non-Bronkitis</h3>
                 <p style="font-size:0.88rem; margin-top:0.4rem;">
                     Tidak terdeteksi ciri khas bronkitis pada sampel suara ini. Terus pantau kondisi dan kecukupan cairan si kecil.
                 </p>
                 <b style="color:#065F46; font-size:0.85rem;">Keyakinan AI: {conf:.1f}% • Waktu: {res['time']} dtk</b>
             </div>
             """, unsafe_allow_html=True)
-
+            
         st.markdown("<p style='font-size:0.85rem; font-weight:800; color:#0369A1; margin-bottom:0.2rem;'>Grafik Mel-Spectrogram:</p>", unsafe_allow_html=True)
         fig, ax = plt.subplots(figsize=(5, 2.3))
         librosa.display.specshow(res["mel_db"], sr=res["sr"], x_axis='time', y_axis='mel', ax=ax, cmap='magma')
