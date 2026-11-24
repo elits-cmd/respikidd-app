@@ -14,7 +14,9 @@ st.set_page_config(
     page_icon="assets/logo.png" if os.path.exists("assets/logo.png") else "🐾",
     layout="centered",
     initial_sidebar_state="collapsed"
-# 2. Custom CSS: Background Cerah + Pola Doodle Gemoy + Layar Mobile Pastel (FIXED)
+)
+
+# 2. Custom CSS: Background Cerah + Pola Doodle Gemoy + Layar Mobile Pastel
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap');
@@ -34,7 +36,7 @@ st.markdown("""
         font-family: 'Nunito', sans-serif;
     }
 
-    /* Bingkai Layar Mobile App (Tanpa merusak flex container bawaan Streamlit) */
+    /* Bingkai Layar Mobile App */
     [data-testid="stMainBlockContainer"], .block-container {
         max-width: 440px !important;
         width: 92% !important;
@@ -115,108 +117,7 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-        padding: 0.75rem 1rem !important;
-        font-family: 'Fredoka', sans-serif !important;
-        font-weight: 600 !important;
-        font-size: 1.05rem !important;
-        border: 2px solid #FFFFFF !important;
-        background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%) !important;
-        color: white !important;
-        box-shadow: 0 6px 16px rgba(56, 189, 248, 0.35);
-        transition: all 0.2s ease;
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px) scale(1.02);
-        background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%) !important;
-    }
-</style>
-""", unsafe_allow_html=True)
 
 # Hiasan Doodle Awan & Bintang Gemoy untuk Bagian Atas Layar
 TOP_DOODLE_SVG = """
-<div style="text-align:center; margin-bottom:-0.3rem;">
-<svg width="240" height="42" viewBox="0 0 240 42" xmlns="http://www.w3.org/2000/svg">
-  <path d="M28 10l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z" fill="#FACC15"/>
-  <path d="M58 32c-4.5 0-8-3.5-8-8 0-3.8 2.7-7 6.3-7.8 1.2-4.2 5.1-7.2 9.7-7.2 5.6 0 10.2 4.5 10.2 10.1 0 .4 0 .8-.1 1.2 3 1 5.3 3.8 5.3 7.2 0 4.2-3.4 7.5-7.6 7.5H58z" fill="#BAE6FD"/>
-  <circle cx="63" cy="24" r="1.4" fill="#0369A1"/>
-  <circle cx="71" cy="24" r="1.4" fill="#0369A1"/>
-  <path d="M65.5 26.5q1.5 2 3 0" stroke="#0369A1" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-  <path d="M124 14c-2.5-3.2-7.5-2.5-9 1-1.5-3.5-6.5-4.2-9-1-2.5 3.2-.8 7.8 9 12.8 9.8-5 11.5-9.6 9-12.8z" fill="#F472B6"/>
-  <path d="M162 32c-4.5 0-8-3.5-8-8 0-3.8 2.7-7 6.3-7.8 1.2-4.2 5.1-7.2 9.7-7.2 5.6 0 10.2 4.5 10.2 10.1 0 .4 0 .8-.1 1.2 3 1 5.3 3.8 5.3 7.2 0 4.2-3.4 7.5-7.6 7.5h-15.8z" fill="#FBCFE8"/>
-  <circle cx="167" cy="24" r="1.4" fill="#9D174D"/>
-  <circle cx="175" cy="24" r="1.4" fill="#9D174D"/>
-  <path d="M169.5 26.5q1.5 2 3 0" stroke="#9D174D" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-  <path d="M212 10l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z" fill="#4ADE80"/>
-</svg>
-</div>
-"""
-
-# Ilustrasi Beruang Pastel 1 (Panduan)
-BEAR_GUIDE_SVG = """
-<div style="text-align:center; margin: 0.2rem 0;">
-<svg width="115" height="115" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <path d="M28 45l3 6 6.5 1-4.7 4.5 1.1 6.5-5.9-3.1-5.9 3.1 1.1-6.5-4.7-4.5 6.5-1z" fill="#FDE047"/>
-  <circle cx="175" cy="50" r="6" fill="#F9A8D4"/>
-  <circle cx="168" cy="145" r="5" fill="#7DD3FC"/>
-  <circle cx="52" cy="55" r="24" fill="#D4A373"/>
-  <circle cx="52" cy="55" r="13" fill="#FAEDCD"/>
-  <circle cx="148" cy="55" r="24" fill="#D4A373"/>
-  <circle cx="148" cy="55" r="13" fill="#FAEDCD"/>
-  <circle cx="100" cy="105" r="62" fill="#E6B88A"/>
-  <ellipse cx="100" cy="122" rx="26" ry="20" fill="#FEFAE0"/>
-  <circle cx="76" cy="96" r="6.5" fill="#3D2C2E"/>
-  <circle cx="78" cy="94" r="2.2" fill="#FFFFFF"/>
-  <circle cx="124" cy="96" r="6.5" fill="#3D2C2E"/>
-  <circle cx="126" cy="94" r="2.2" fill="#FFFFFF"/>
-  <ellipse cx="63" cy="112" rx="10" ry="5.5" fill="#FF9AA2" opacity="0.8"/>
-  <ellipse cx="137" cy="112" rx="10" ry="5.5" fill="#FF9AA2" opacity="0.8"/>
-  <ellipse cx="100" cy="114" rx="8" ry="5" fill="#5C4033"/>
-  <path d="M 90 126 Q 100 136 110 126" stroke="#5C4033" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-  <path d="M 55 158 Q 100 175 145 158 L 138 180 Q 100 192 62 180 Z" fill="#7DD3FC"/>
-</svg>
-</div>
-"""
-
-# Ilustrasi Beruang Pastel 2 (Edukasi)
-BEAR_EDU_SVG = """
-<div style="text-align:center; margin: 0.2rem 0;">
-<svg width="115" height="115" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <path d="M172 42c-2.5-3.2-7.5-2.5-9 1-1.5-3.5-6.5-4.2-9-1-2.5 3.2-.8 7.8 9 12.8 9.8-5 11.5-9.6 9-12.8z" fill="#FDA4AF"/>
-  <path d="M28 135l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z" fill="#6EE7B7"/>
-  <circle cx="52" cy="58" r="23" fill="#EDE0D4"/>
-  <circle cx="52" cy="58" r="12" fill="#FFB5A7"/>
-  <circle cx="148" cy="58" r="23" fill="#EDE0D4"/>
-  <circle cx="148" cy="58" r="12" fill="#FFB5A7"/>
-  <circle cx="100" cy="108" r="60" fill="#F5EBE0"/>
-  <ellipse cx="100" cy="124" rx="24" ry="18" fill="#FFFFFF"/>
-  <circle cx="76" cy="98" r="5.5" fill="#334155"/>
-  <circle cx="124" cy="98" r="5.5" fill="#334155"/>
-  <circle cx="76" cy="98" r="16" stroke="#38BDF8" stroke-width="3.5" fill="none"/>
-  <circle cx="124" cy="98" r="16" stroke="#38BDF8" stroke-width="3.5" fill="none"/>
-  <line x1="92" y1="98" x2="108" y2="98" stroke="#38BDF8" stroke-width="3.5"/>
-  <ellipse cx="62" cy="115" rx="9" ry="5" fill="#FFCAD4"/>
-  <ellipse cx="138" cy="115" rx="9" ry="5" fill="#FFCAD4"/>
-  <ellipse cx="100" cy="116" rx="7" ry="4.5" fill="#7F5539"/>
-  <path d="M 92 127 Q 100 135 108 127" stroke="#7F5539" stroke-width="3" fill="none" stroke-linecap="round"/>
-</svg>
-</div>
-"""
-
-# Inisialisasi State Halaman
-if "page" not in st.session_state:
-    st.session_state.page = 1
-if "result_data" not in st.session_state:
-    st.session_state.result_data = None
-
-def go_to(page_num):
-    st.session_state.page = page_num
-
-@st.cache_resource
-def load_respikidd_model():
-    return tf.keras.models.load_model('respikidd_model.keras')
-
-def preprocess_and_extract_mel(audio_file, use_noise_reduce=True):
-    """Membersihkan noise, memvalidasi volume, dan membuat Mel-Spectrogram 128x128."""
-    y, sr = librosa.load(audio_file, sr=22050, duration=3.0)
-
-    # 1. Validasi kualitas suara (cegah prediksi palsu dari rekaman hening)
+<div style="text-align:center; margin-bottom:-0.3rem
