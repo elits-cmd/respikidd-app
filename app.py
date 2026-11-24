@@ -325,12 +325,21 @@ elif st.session_state.page == 3:
                     start_time = time.time()
 
                     y, sr = librosa.load(audio_data, sr=22050, duration=3.0)
-                    y_clean = nr.reduce_noise(y=y, sr=sr)
-                    y_norm = librosa.util.normalize(y_clean)
+                    
+                    # Buang bagian hening di awal & akhir agar fokus ke suara batuk saja
+                    y_trim, _ = librosa.effects.trim(y, top_db=25)
+                    if len(y_trim) > 0:
+                        y = y_trim
 
+                    # Normalisasi audio
+                    y_norm = librosa.util.normalize(y)
+
+                    # Mel-Spectrogram (128x128)
                     mel_spec = librosa.feature.melspectrogram(y=y_norm, sr=sr, n_mels=128)
                     mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
-                    mel_norm = (mel_spec_db - mel_spec_db.min()) / (mel_spec_db.max() - mel_spec_db.min() + 1e-8)
+                    
+                    # Normalisasi standar dB (-80 dB s/d 0 dB -> 0 s/d 1)
+                    mel_norm = np.clip((mel_spec_db + 80.0) / 80.0, 0.0, 1.0)
 
                     mel_resized = tf.image.resize(mel_norm[..., np.newaxis], (128, 128)).numpy()
                     img_input = np.expand_dims(mel_resized, axis=0)
@@ -362,7 +371,7 @@ elif st.session_state.page == 4:
 
     if res is not None:
         pred_prob = res["prob"]
-        if pred_prob >= 0.5:
+        if pred_prob >= 0.75:
             conf = pred_prob * 100
             st.markdown(f"""
             <div class="mobile-card card-pink" style="text-align:center;">
