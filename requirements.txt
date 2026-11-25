@@ -4,3 +4,4 @@ librosa
 noisereduce
 numpy
 matplotlib
+streamlit-js-eval
