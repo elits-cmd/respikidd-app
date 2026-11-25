@@ -513,7 +513,7 @@ elif st.session_state.page == 4:
                 <b>Anak:</b> {res['child_name']} ({res['child_age']} bln)<br>
                 <b>Orang Tua/Wali:</b> {res['parent_name']}<br>
                 <b>Wilayah:</b> {wilayah_tampil}<br>
-                }
+            
             </div>
         </div>
         """, unsafe_allow_html=True)
