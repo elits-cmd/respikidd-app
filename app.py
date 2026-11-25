@@ -265,4 +265,305 @@ elif st.session_state.page == 2:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
     st.markdown("<div style='text-align:center;'><span class='step-indicator'>Cara Pakai • 2/5</span></div>", unsafe_allow_html=True)
     
-    render_
+    render_mascot(width_ratio=1.8, fallback_svg=BEAR_GUIDE_SVG)
+    
+    st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.35rem;'>Cara Menggunakan Aplikasi</h3>", unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="mobile-card card-blue">
+        <b style="color:#0369A1;">1. Isi Data Singkat & Tenangkan Anak</b><br>
+        <span style="font-size:0.88rem;">Data nama & usia membantu tenaga medis di Puskesmas/Posyandu mencatat riwayat skrining dengan cepat.</span>
+    </div>
+    <div class="mobile-card card-peach">
+        <b style="color:#C2410C;">2. Rekam / Unggah Suara Batuk</b><br>
+        <span style="font-size:0.88rem;">Dekatkan HP sekitar 15–20 cm saat anak batuk, atau pilih file rekaman audio.</span>
+    </div>
+    <div class="mobile-card card-mint">
+        <b style="color:#047857;">3. Lihat Hasil & Faskes Terdekat</b><br>
+        <span style="font-size:0.88rem;">AI menampilkan hasil analisis beserta petunjuk dokter/Puskesmas terdekat dari lokasi Anda.</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_b1, col_b2 = st.columns([1, 2])
+    with col_b1:
+        st.button("⬅ Kembali", on_click=go_to, args=(1,))
+    with col_b2:
+        st.button("Lanjut Cek Batuk ➔", on_click=go_to, args=(3,))
+
+# ==============================================================================
+# LAYAR 3: IDENTITAS PASIEN (3T) + REKAM / UNGGAH SUARA BATUK
+# ==============================================================================
+elif st.session_state.page == 3:
+    st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Data & Suara • 3/5</span></div>", unsafe_allow_html=True)
+    
+    render_mascot(width_ratio=1.4, fallback_svg=BEAR_GUIDE_SVG)
+    
+    st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.3rem;'>Data Anak & Suara Batuk</h3>", unsafe_allow_html=True)
+
+    # Bagian Identitas untuk mempermudah pendataan paramedis di daerah 3T
+    st.markdown("""
+    <div class="mobile-card card-yellow" style="padding:0.75rem 1rem; margin-bottom:0.6rem;">
+        <b style="color:#9A3412; font-size:0.88rem;">📋 Identitas Pasien (Untuk Pendataan Medis)</b><br>
+        <span style="font-size:0.8rem; color:#78350F;">Membantu bidan, perawat, atau dokter Puskesmas mendata pasien dengan cepat.</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    child_name = st.text_input("Nama Lengkap Anak *", placeholder="Contoh: Budi Santoso")
+    c_id1, c_id2 = st.columns([1.4, 1])
+    with c_id1:
+        parent_name = st.text_input("Nama Orang Tua / Wali *", placeholder="Contoh: Ibu Siti")
+    with c_id2:
+        child_age = st.number_input("Usia (Bulan)", min_value=1, max_value=60, value=18)
+
+    region_manual = st.text_input("Desa / Kecamatan / Kabupaten (Opsional)", placeholder="Contoh: Kec. Wamena, Kab. Jayawijaya")
+
+    st.markdown("<p style='font-size:0.9rem; font-weight:800; color:#0369A1; margin-top:0.6rem; margin-bottom:0.2rem;'>🎙️ Rekam atau Unggah Suara Batuk:</p>", unsafe_allow_html=True)
+
+    tab1, tab2 = st.tabs(["Rekam Suara", "Unggah File"])
+    audio_data = None
+
+    with tab1:
+        rec = st.audio_input("Tekan ikon mic untuk merekam:")
+        if rec:
+            audio_data = rec
+
+    with tab2:
+        upl = st.file_uploader("Pilih file audio batuk:", type=["wav", "mp3", "ogg"])
+        if upl:
+            audio_data = upl
+
+    st.markdown("<p style='font-size:0.88rem; font-weight:700; color:#0369A1; margin-top:0.5rem; margin-bottom:0.2rem;'>Gejala Tambahan (Opsional):</p>", unsafe_allow_html=True)
+    c_g1, c_g2 = st.columns(2)
+    with c_g1:
+        has_wheezing = st.checkbox("Napas ngik-ngik / berlendir")
+    with c_g2:
+        has_fever = st.checkbox("Demam / batuk > 3 hari")
+
+    if audio_data is not None:
+        st.audio(audio_data)
+        if st.button("Analisis Suara Sekarang ✨"):
+            if not child_name.strip() or not parent_name.strip():
+                st.warning("Mohon isi **Nama Anak** dan **Nama Orang Tua / Wali** terlebih dahulu untuk keperluan pendataan medis.")
+            else:
+                with st.spinner("Membersihkan noise & menganalisis suara batuk..."):
+                    try:
+                        model = load_respikidd_model()
+                        start_time = time.time()
+
+                        img_input, spec_info, err_msg = preprocess_and_extract_mel(audio_data, use_noise_reduce=True)
+
+                        if err_msg:
+                            st.warning(err_msg)
+                        else:
+                            mel_spec_db, sr = spec_info
+                            raw_prob = float(model.predict(img_input, verbose=0)[0][0])
+                            
+                            bronchitis_score = 1.0 - raw_prob
+
+                            if has_wheezing:
+                                bronchitis_score = min(1.0, bronchitis_score + 0.08)
+                            if has_fever:
+                                bronchitis_score = min(1.0, bronchitis_score + 0.05)
+
+                            response_time = round(time.time() - start_time, 2)
+
+                            st.session_state.result_data = {
+                                "child_name": child_name.strip(),
+                                "parent_name": parent_name.strip(),
+                                "child_age": child_age,
+                                "region_manual": region_manual.strip(),
+                                "has_wheezing": has_wheezing,
+                                "has_fever": has_fever,
+                                "timestamp": datetime.now().strftime("%d-%m-%Y %H:%M"),
+                                "bronchitis_score": bronchitis_score,
+                                "raw_prob": raw_prob,
+                                "time": response_time,
+                                "mel_db": mel_spec_db,
+                                "sr": sr
+                            }
+                            st.session_state.page = 4
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Terjadi kendala saat memproses audio: {e}")
+
+    st.write("")
+    st.button("⬅ Kembali ke Panduan", on_click=go_to, args=(2,))
+
+# ==============================================================================
+# LAYAR 4: HASIL ANALISIS AI, IZIN LOKASI FASKES & LAPORAN PARAMEDIS
+# ==============================================================================
+elif st.session_state.page == 4:
+    st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Hasil Skrining • 4/5</span></div>", unsafe_allow_html=True)
+    
+    render_mascot(width_ratio=1.4, fallback_svg=BEAR_EDU_SVG)
+    
+    res = st.session_state.result_data
+
+    if res is not None:
+        # Kartu Identitas Pasien
+        st.markdown(f"""
+        <div class="mobile-card card-blue" style="padding:0.85rem 1rem; margin-bottom:0.7rem;">
+            <div style="font-size:0.82rem; color:#0369A1; font-weight:800;">🪪 REKAM SKRINING PASIEN</div>
+            <div style="font-size:0.88rem; margin-top:0.25rem;">
+                <b>Anak:</b> {res['child_name']} ({res['child_age']} bln)<br>
+                <b>Orang Tua/Wali:</b> {res['parent_name']}<br>
+                <b>Waktu:</b> {res['timestamp']}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        b_score = res["bronchitis_score"]
+        if b_score >= 0.5:
+            conf = b_score * 100
+            status_label = "INDIKASI GEJALA BRONKITIS"
+            st.markdown(f"""
+            <div class="mobile-card card-pink" style="text-align:center;">
+                <h3 style="color:#BE123C; margin:0;">Indikasi Gejala Bronkitis</h3>
+                <p style="font-size:0.88rem; margin-top:0.4rem;">
+                    Pola suara mengarah pada batuk berlendir/menyempit. Segera periksakan <b>{res['child_name']}</b> ke dokter atau Puskesmas terdekat.
+                </p>
+                <b style="color:#9F1239; font-size:0.85rem;">Keyakinan AI: {conf:.1f}% • Waktu: {res['time']} dtk</b>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            conf = (1.0 - b_score) * 100
+            status_label = "POLA BATUK NON-BRONKITIS"
+            st.markdown(f"""
+            <div class="mobile-card card-mint" style="text-align:center;">
+                <h3 style="color:#047857; margin:0;">Pola Batuk Non-Bronkitis</h3>
+                <p style="font-size:0.88rem; margin-top:0.4rem;">
+                    Tidak terdeteksi ciri khas bronkitis pada sampel suara ini. Terus pantau kondisi dan kecukupan cairan si kecil.
+                </p>
+                <b style="color:#065F46; font-size:0.85rem;">Keyakinan AI: {conf:.1f}% • Waktu: {res['time']} dtk</b>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ======================================================================
+        # FITUR IZIN LOKASI & PENCARIAN DOKTER / PUSKESMAS TERDEKAT
+        # ======================================================================
+        st.markdown("""
+        <div class="mobile-card card-peach" style="padding:0.9rem 1rem;">
+            <b style="color:#C2410C; font-size:0.92rem;">📍 Cari Dokter & Puskesmas Terdekat</b><br>
+            <span style="font-size:0.83rem; color:#7C2D12;">
+                Izinkan aplikasi mengakses lokasi GPS Anda untuk menemukan dokter anak, Puskesmas, atau RS terdekat di sekitar Anda.
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if st.button("📍 Izinkan Akses Lokasi Saya"):
+            st.session_state.ask_gps = True
+
+        if st.session_state.ask_gps and st.session_state.user_coords is None:
+            loc = get_geolocation(component_key="get_user_gps")
+            if loc and "coords" in loc:
+                st.session_state.user_coords = {
+                    "lat": loc["coords"]["latitude"],
+                    "lon": loc["coords"]["longitude"]
+                }
+                st.rerun()
+            else:
+                st.info("Silakan klik **Allow / Izinkan** pada popup izin lokasi di browser/HP Anda...")
+
+        coords_text = res["region_manual"] if res["region_manual"] else "Tidak dicantumkan"
+
+        if st.session_state.user_coords is not None:
+            lat = st.session_state.user_coords["lat"]
+            lon = st.session_state.user_coords["lon"]
+            coords_text = f"{lat:.5f}, {lon:.5f}" + (f" ({res['region_manual']})" if res["region_manual"] else "")
+            
+            st.success(f"Lokasi terdeteksi: `{lat:.5f}, {lon:.5f}`")
+            
+            maps_puskesmas_url = f"https://www.google.com/maps/search/Puskesmas+atau+Klinik+terdekat/@{lat},{lon},14z"
+            maps_dokter_url = f"https://www.google.com/maps/search/Dokter+Anak+atau+Rumah+Sakit+terdekat/@{lat},{lon},13z"
+            
+            st.markdown(f"""
+            <a href="{maps_puskesmas_url}" target="_blank" class="maps-btn">🏥 Buka Puskesmas / Klinik Terdekat</a>
+            <a href="{maps_dokter_url}" target="_blank" class="maps-btn" style="background:linear-gradient(135deg, #0284C7 0%, #2563EB 100%);">🩺 Buka Dokter Anak / RS Terdekat</a>
+            """, unsafe_allow_html=True)
+        elif res["region_manual"]:
+            query_loc = res["region_manual"].replace(" ", "+")
+            maps_fallback_url = f"https://www.google.com/maps/search/Puskesmas+Dokter+di+{query_loc}"
+            st.markdown(f"""
+            <a href="{maps_fallback_url}" target="_blank" class="maps-btn">🏥 Cari Faskes di {res['region_manual']}</a>
+            """, unsafe_allow_html=True)
+
+        # ======================================================================
+        # LAPORAN SIAP KIRIM / UNDUH UNTUK PARAMEDIS 3T
+        # ======================================================================
+        gejala_list = []
+        if res["has_wheezing"]:
+            gejala_list.append("Napas ngik-ngik/berlendir")
+        if res["has_fever"]:
+            gejala_list.append("Demam/batuk > 3 hari")
+        gejala_str = ", ".join(gejala_list) if gejala_list else "Tidak ada gejala tambahan dicentang"
+
+        laporan_teks = f"""LAPORAN SKRINING AWAL RESPIKIDD
+========================================
+Waktu Pemeriksaan : {res['timestamp']}
+Nama Anak         : {res['child_name']}
+Usia Anak         : {res['child_age']} bulan
+Nama Orang Tua    : {res['parent_name']}
+Lokasi / Wilayah  : {coords_text}
+Gejala Tambahan   : {gejala_str}
+----------------------------------------
+Hasil Skrining AI : {status_label}
+Tingkat Keyakinan : {conf:.1f}%
+----------------------------------------
+Catatan: Hasil ini merupakan skrining awal berbasis suara batuk dan bukan pengganti diagnosis medis dokter.
+"""
+        st.download_button(
+            label="📄 Unduh Laporan untuk Bidan / Dokter (.txt)",
+            data=laporan_teks,
+            file_name=f"Skrining_RespiKidd_{res['child_name'].replace(' ', '_')}.txt",
+            mime="text/plain"
+        )
+
+        # Grafik Mel-Spectrogram
+        st.markdown("<p style='font-size:0.85rem; font-weight:800; color:#0369A1; margin-top:0.6rem; margin-bottom:0.2rem;'>Grafik Mel-Spectrogram:</p>", unsafe_allow_html=True)
+        fig, ax = plt.subplots(figsize=(5, 2.3))
+        librosa.display.specshow(res["mel_db"], sr=res["sr"], x_axis='time', y_axis='mel', ax=ax, cmap='magma')
+        ax.set_xlabel("Waktu (detik)", fontsize=8)
+        ax.set_ylabel("Frekuensi", fontsize=8)
+        plt.tight_layout()
+        st.pyplot(fig)
+        plt.close(fig)
+
+    col_r1, col_r2 = st.columns([1, 1.4])
+    with col_r1:
+        st.button("Cek Ulang", on_click=go_to, args=(3,))
+    with col_r2:
+        st.button("Baca Edukasi ➔", on_click=go_to, args=(5,))
+
+# ==============================================================================
+# LAYAR 5: EDUKASI SINGKAT
+# ==============================================================================
+elif st.session_state.page == 5:
+    st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Edukasi Singkat • 5/5</span></div>", unsafe_allow_html=True)
+    
+    render_mascot(width_ratio=1.8, fallback_svg=BEAR_EDU_SVG)
+    
+    st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.35rem;'>Info Singkat untuk Orang Tua</h3>", unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="mobile-card card-blue">
+        <b style="color:#0369A1;">Kenapa Batita Rentan?</b><br>
+        <span style="font-size:0.86rem;">Saluran napas anak di bawah 3 tahun masih sempit, sehingga peradangan mudah memicu lendir berlebih dan batuk berat.</span>
+    </div>
+    <div class="mobile-card card-pink">
+        <b style="color:#BE123C;">Tanda Bahaya (Segera ke Dokter)</b><br>
+        <span style="font-size:0.86rem;">Napas berbunyi ngik-ngik (<i>wheezing</i>), napas sangat cepat saat tenang, atau anak tampak lemas dan demam tinggi.</span>
+    </div>
+    <div class="mobile-card card-peach">
+        <b style="color:#C2410C;">Jauhkan Asap Rokok</b><br>
+        <span style="font-size:0.86rem;">Asap rokok di rumah memperparah iritasi saluran pernapasan batita. Jaga udara rumah tetap bersih.</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_e1, col_e2 = st.columns([1, 1.3])
+    with col_e1:
+        st.button("⬅ Hasil", on_click=go_to, args=(4,))
+    with col_e2:
+        st.button("Kembali ke Awal", on_click=go_to, args=(1,))
