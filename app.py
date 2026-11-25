@@ -312,10 +312,10 @@ elif st.session_state.page == 3:
     </div>
     """, unsafe_allow_html=True)
 
-    child_name = st.text_input("Nama Lengkap Anak *", placeholder="Contoh: Budi Santoso")
+    child_name = st.text_input("Nama Lengkap Anak *", placeholder="Contoh: Mahirah")
     c_id1, c_id2 = st.columns([1.4, 1])
     with c_id1:
-        parent_name = st.text_input("Nama Orang Tua / Wali *", placeholder="Contoh: Ibu Siti")
+        parent_name = st.text_input("Nama Orang Tua / Wali *", placeholder="Contoh: Elita")
     with c_id2:
         child_age = st.number_input("Usia (Bulan)", min_value=1, max_value=60, value=18)
 
