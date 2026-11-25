@@ -11,7 +11,7 @@ import os
 # 1. Konfigurasi Halaman
 st.set_page_config(
     page_title="RespiKidd Mobile App",
-    page_icon="main" if os.path.exists("mascot.png.png") else "🐾",
+    page_icon="mascot.png.png" if os.path.exists("mascot.png.png") else "🐾",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
@@ -187,6 +187,15 @@ if "result_data" not in st.session_state:
 def go_to(page_num):
     st.session_state.page = page_num
 
+def render_mascot(width_ratio=2.4, fallback_svg=BEAR_GUIDE_SVG):
+    if os.path.exists("mascot.png.png"):
+        side = (5.0 - width_ratio) / 2
+        c1, c2, c3 = st.columns([side, width_ratio, side])
+        with c2:
+            st.image("mascot.png.png", use_container_width=True)
+    elif fallback_svg:
+        st.markdown(fallback_svg, unsafe_allow_html=True)
+
 @st.cache_resource
 def load_respikidd_model():
     return tf.keras.models.load_model('respikidd_model.keras')
@@ -224,12 +233,7 @@ if st.session_state.page == 1:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
     st.markdown("<div style='text-align:center;'><span class='step-indicator'>Selamat Datang • 1/5</span></div>", unsafe_allow_html=True)
     
-    c1, c2, c3 = st.columns([0.8, 3.4, 0.8])
-    with c2:
-        if os.path.exists("mascot.png.png"):
-            st.image("mascot.png.png", use_container_width=True)
-        else:
-            st.markdown("<h1 style='text-align:center;'>RespiKidd</h1>", unsafe_allow_html=True)
+    render_mascot(width_ratio=3.4, fallback_svg=BEAR_GUIDE_SVG)
 
     st.markdown("""
     <div class="mobile-card card-yellow" style="text-align:center; margin-top:0.5rem;">
@@ -248,7 +252,9 @@ if st.session_state.page == 1:
 elif st.session_state.page == 2:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
     st.markdown("<div style='text-align:center;'><span class='step-indicator'>Cara Pakai • 2/5</span></div>", unsafe_allow_html=True)
-    st.markdown(BEAR_GUIDE_SVG, unsafe_allow_html=True)
+    
+    render_mascot(width_ratio=1.8, fallback_svg=BEAR_GUIDE_SVG)
+    
     st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.35rem;'>Cara Menggunakan Aplikasi</h3>", unsafe_allow_html=True)
 
     st.markdown("""
@@ -278,7 +284,10 @@ elif st.session_state.page == 2:
 elif st.session_state.page == 3:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
     st.markdown("<div style='text-align:center;'><span class='step-indicator'>Cek Suara • 3/5</span></div>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align:center; font-size:1.35rem;'>Masukkan Suara Batuk</h3>", unsafe_allow_html=True)
+    
+    render_mascot(width_ratio=1.5, fallback_svg=BEAR_GUIDE_SVG)
+    
+    st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.35rem;'>Masukkan Suara Batuk</h3>", unsafe_allow_html=True)
     st.markdown("""
     <div class="mobile-card card-blue" style="text-align:center; padding:0.8rem;">
         <span style="font-size:0.88rem;">Pilih rekam langsung lewat mikrofon HP atau unggah file rekaman (.wav / .mp3).</span>
@@ -351,6 +360,9 @@ elif st.session_state.page == 3:
 elif st.session_state.page == 4:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
     st.markdown("<div style='text-align:center;'><span class='step-indicator'>Hasil Skrining • 4/5</span></div>", unsafe_allow_html=True)
+    
+    render_mascot(width_ratio=1.5, fallback_svg=BEAR_EDU_SVG)
+    
     res = st.session_state.result_data
 
     if res is not None:
@@ -399,7 +411,9 @@ elif st.session_state.page == 4:
 elif st.session_state.page == 5:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
     st.markdown("<div style='text-align:center;'><span class='step-indicator'>Edukasi Singkat • 5/5</span></div>", unsafe_allow_html=True)
-    st.markdown(BEAR_EDU_SVG, unsafe_allow_html=True)
+    
+    render_mascot(width_ratio=1.8, fallback_svg=BEAR_EDU_SVG)
+    
     st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.35rem;'>Info Singkat untuk Orang Tua</h3>", unsafe_allow_html=True)
 
     st.markdown("""
