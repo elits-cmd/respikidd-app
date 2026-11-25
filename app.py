@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import time
 import os
+import urllib.parse
 from datetime import datetime
 from streamlit_js_eval import get_geolocation
 
@@ -112,27 +113,30 @@ st.markdown("""
         color: white !important;
     }
 
-    .maps-btn {
+    .action-btn {
         display: block;
         width: 100%;
         text-align: center;
-        padding: 0.75rem 1rem;
-        border-radius: 20px;
-        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        padding: 0.72rem 1rem;
+        border-radius: 18px;
         color: #FFFFFF !important;
         font-family: 'Fredoka', sans-serif;
         font-weight: 600;
-        font-size: 0.98rem;
+        font-size: 0.95rem;
         text-decoration: none;
         border: 2px solid #FFFFFF;
-        box-shadow: 0 6px 14px rgba(16, 185, 129, 0.3);
-        margin-top: 0.5rem;
-        margin-bottom: 0.5rem;
+        margin-top: 0.45rem;
+        margin-bottom: 0.45rem;
+        box-sizing: border-box;
     }
-    .maps-btn:hover {
-        opacity: 0.95;
+    .action-btn:hover {
+        opacity: 0.94;
         color: #FFFFFF !important;
     }
+    .btn-green { background: linear-gradient(135deg, #10B981 0%, #059669 100%); box-shadow: 0 5px 12px rgba(16, 185, 129, 0.28); }
+    .btn-blue { background: linear-gradient(135deg, #0284C7 0%, #2563EB 100%); box-shadow: 0 5px 12px rgba(37, 99, 235, 0.28); }
+    .btn-red { background: linear-gradient(135deg, #F43F5E 0%, #E11D48 100%); box-shadow: 0 5px 12px rgba(225, 29, 72, 0.28); }
+    .btn-wa { background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%); box-shadow: 0 5px 12px rgba(22, 163, 74, 0.28); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -251,7 +255,7 @@ if st.session_state.page == 1:
     <div class="mobile-card card-yellow" style="text-align:center; margin-top:0.5rem;">
         <h2 style="color:#0369A1; margin:0 0 0.4rem 0; font-size:1.5rem;">Halo Ayah & Bunda!</h2>
         <p style="font-size:0.95rem; color:#475569; line-height:1.5; margin:0;">
-            <b>RespiKidd</b> membantu skrining dini gejala bronkitis pada batita lewat suara batuk serta menghubungkan ke layanan kesehatan terdekat di seluruh Indonesia.
+            <b>RespiKidd</b> membantu skrining dini gejala bronkitis pada batita lewat suara batuk serta menghubungkan ke kontak medis & Puskesmas terdekat di seluruh Indonesia.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -279,8 +283,8 @@ elif st.session_state.page == 2:
         <span style="font-size:0.88rem;">Dekatkan HP sekitar 15–20 cm saat anak batuk, atau pilih file rekaman audio.</span>
     </div>
     <div class="mobile-card card-mint">
-        <b style="color:#047857;">3. Lihat Hasil & Faskes Terdekat</b><br>
-        <span style="font-size:0.88rem;">AI menampilkan hasil analisis beserta petunjuk dokter/Puskesmas terdekat dari lokasi Anda.</span>
+        <b style="color:#047857;">3. Lihat Hasil & Kontak Faskes Terdekat</b><br>
+        <span style="font-size:0.88rem;">Dapatkan hasil skrining AI, kontak darurat medis, nomor telepon Puskesmas/RS sekitar, serta laporan siap kirim.</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -301,7 +305,6 @@ elif st.session_state.page == 3:
     
     st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.3rem;'>Data Anak & Suara Batuk</h3>", unsafe_allow_html=True)
 
-    # Bagian Identitas untuk mempermudah pendataan paramedis di daerah 3T
     st.markdown("""
     <div class="mobile-card card-yellow" style="padding:0.75rem 1rem; margin-bottom:0.6rem;">
         <b style="color:#9A3412; font-size:0.88rem;">📋 Identitas Pasien (Untuk Pendataan Medis)</b><br>
@@ -316,7 +319,7 @@ elif st.session_state.page == 3:
     with c_id2:
         child_age = st.number_input("Usia (Bulan)", min_value=1, max_value=60, value=18)
 
-    region_manual = st.text_input("Desa / Kecamatan / Kabupaten (Opsional)", placeholder="Contoh: Kec. Wamena, Kab. Jayawijaya")
+    region_manual = st.text_input("Desa / Kecamatan / Kabupaten", placeholder="Contoh: Kec. Wamena, Kab. Jayawijaya")
 
     st.markdown("<p style='font-size:0.9rem; font-weight:800; color:#0369A1; margin-top:0.6rem; margin-bottom:0.2rem;'>🎙️ Rekam atau Unggah Suara Batuk:</p>", unsafe_allow_html=True)
 
@@ -391,7 +394,7 @@ elif st.session_state.page == 3:
     st.button("⬅ Kembali ke Panduan", on_click=go_to, args=(2,))
 
 # ==============================================================================
-# LAYAR 4: HASIL ANALISIS AI, IZIN LOKASI FASKES & LAPORAN PARAMEDIS
+# LAYAR 4: HASIL ANALISIS AI, KONTAK MEDIS TERDEKAT & LAPORAN PARAMEDIS
 # ==============================================================================
 elif st.session_state.page == 4:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
@@ -402,18 +405,20 @@ elif st.session_state.page == 4:
     res = st.session_state.result_data
 
     if res is not None:
-        # Kartu Identitas Pasien
+        # 1. Kartu Identitas Pasien
         st.markdown(f"""
         <div class="mobile-card card-blue" style="padding:0.85rem 1rem; margin-bottom:0.7rem;">
             <div style="font-size:0.82rem; color:#0369A1; font-weight:800;">🪪 REKAM SKRINING PASIEN</div>
             <div style="font-size:0.88rem; margin-top:0.25rem;">
                 <b>Anak:</b> {res['child_name']} ({res['child_age']} bln)<br>
                 <b>Orang Tua/Wali:</b> {res['parent_name']}<br>
+                <b>Wilayah:</b> {res['region_manual'] if res['region_manual'] else '-'}<br>
                 <b>Waktu:</b> {res['timestamp']}
             </div>
         </div>
         """, unsafe_allow_html=True)
 
+        # 2. Kartu Hasil Analisis AI
         b_score = res["bronchitis_score"]
         if b_score >= 0.5:
             conf = b_score * 100
@@ -422,7 +427,7 @@ elif st.session_state.page == 4:
             <div class="mobile-card card-pink" style="text-align:center;">
                 <h3 style="color:#BE123C; margin:0;">Indikasi Gejala Bronkitis</h3>
                 <p style="font-size:0.88rem; margin-top:0.4rem;">
-                    Pola suara mengarah pada batuk berlendir/menyempit. Segera periksakan <b>{res['child_name']}</b> ke dokter atau Puskesmas terdekat.
+                    Pola suara mengarah pada batuk berlendir/menyempit. Segera hubungi atau bawa <b>{res['child_name']}</b> ke dokter atau Puskesmas terdekat.
                 </p>
                 <b style="color:#9F1239; font-size:0.85rem;">Keyakinan AI: {conf:.1f}% • Waktu: {res['time']} dtk</b>
             </div>
@@ -441,18 +446,20 @@ elif st.session_state.page == 4:
             """, unsafe_allow_html=True)
 
         # ======================================================================
-        # FITUR IZIN LOKASI & PENCARIAN DOKTER / PUSKESMAS TERDEKAT
+        # 3. KONTAK MEDIS, DARURAT & DOKTER / PUSKESMAS TERDEKAT
         # ======================================================================
         st.markdown("""
-        <div class="mobile-card card-peach" style="padding:0.9rem 1rem;">
-            <b style="color:#C2410C; font-size:0.92rem;">📍 Cari Dokter & Puskesmas Terdekat</b><br>
-            <span style="font-size:0.83rem; color:#7C2D12;">
-                Izinkan aplikasi mengakses lokasi GPS Anda untuk menemukan dokter anak, Puskesmas, atau RS terdekat di sekitar Anda.
+        <div class="mobile-card card-peach" style="padding:0.95rem 1rem;">
+            <b style="color:#C2410C; font-size:0.95rem;">📞 Kontak Medis & Faskes Terdekat</b><br>
+            <span style="font-size:0.82rem; color:#7C2D12;">
+                Hubungi layanan darurat nasional atau cari nomor telepon & kontak Puskesmas/RS terdekat dari lokasi Anda:
             </span>
+            <a href="tel:119" class="action-btn btn-red">🚑 Telepon Darurat Kemenkes (119)</a>
+            <a href="tel:112" class="action-btn btn-red" style="background:linear-gradient(135deg, #EA580C 0%, #C2410C 100%);">🆘 Panggilan Darurat Nasional (112)</a>
         </div>
         """, unsafe_allow_html=True)
 
-        if st.button("📍 Izinkan Akses Lokasi Saya"):
+        if st.button("📍 Izinkan Lokasi GPS untuk Kontak RS & Dokter Terdekat"):
             st.session_state.ask_gps = True
 
         if st.session_state.ask_gps and st.session_state.user_coords is None:
@@ -464,7 +471,7 @@ elif st.session_state.page == 4:
                 }
                 st.rerun()
             else:
-                st.info("Silakan klik **Allow / Izinkan** pada popup izin lokasi di browser/HP Anda...")
+                st.info("Klik **Allow / Izinkan** pada popup izin lokasi di browser/HP Anda...")
 
         coords_text = res["region_manual"] if res["region_manual"] else "Tidak dicantumkan"
 
@@ -473,31 +480,35 @@ elif st.session_state.page == 4:
             lon = st.session_state.user_coords["lon"]
             coords_text = f"{lat:.5f}, {lon:.5f}" + (f" ({res['region_manual']})" if res["region_manual"] else "")
             
-            st.success(f"Lokasi terdeteksi: `{lat:.5f}, {lon:.5f}`")
+            st.success(f"Lokasi GPS aktif: `{lat:.5f}, {lon:.5f}`")
             
-            maps_puskesmas_url = f"https://www.google.com/maps/search/Puskesmas+atau+Klinik+terdekat/@{lat},{lon},14z"
-            maps_dokter_url = f"https://www.google.com/maps/search/Dokter+Anak+atau+Rumah+Sakit+terdekat/@{lat},{lon},13z"
+            # Link Maps berisi pin + nomor telepon faskes terdekat
+            maps_puskesmas_url = f"https://www.google.com/maps/search/nomor+telepon+Puskesmas+Klinik+terdekat/@{lat},{lon},14z"
+            maps_dokter_url = f"https://www.google.com/maps/search/nomor+telepon+Dokter+Anak+Rumah+Sakit+terdekat/@{lat},{lon},13z"
             
             st.markdown(f"""
-            <a href="{maps_puskesmas_url}" target="_blank" class="maps-btn">🏥 Buka Puskesmas / Klinik Terdekat</a>
-            <a href="{maps_dokter_url}" target="_blank" class="maps-btn" style="background:linear-gradient(135deg, #0284C7 0%, #2563EB 100%);">🩺 Buka Dokter Anak / RS Terdekat</a>
+            <a href="{maps_puskesmas_url}" target="_blank" class="action-btn btn-green">🏥 Lihat Kontak & Lokasi Puskesmas Terdekat</a>
+            <a href="{maps_dokter_url}" target="_blank" class="action-btn btn-blue">🩺 Lihat Kontak & Lokasi Dokter Anak / RS</a>
             """, unsafe_allow_html=True)
-        elif res["region_manual"]:
-            query_loc = res["region_manual"].replace(" ", "+")
-            maps_fallback_url = f"https://www.google.com/maps/search/Puskesmas+Dokter+di+{query_loc}"
+
+        # Pencarian kontak berdasarkan nama wilayah yang diketik (sangat berguna di 3T jika GPS tidak akurat)
+        if res["region_manual"]:
+            q_puskesmas = urllib.parse.quote(f"nomor telepon Puskesmas {res['region_manual']}")
+            q_rs = urllib.parse.quote(f"nomor telepon Rumah Sakit Dokter Anak {res['region_manual']}")
             st.markdown(f"""
-            <a href="{maps_fallback_url}" target="_blank" class="maps-btn">🏥 Cari Faskes di {res['region_manual']}</a>
+            <a href="https://www.google.com/search?q={q_puskesmas}" target="_blank" class="action-btn btn-green">☎️ Cari Nomor Telepon Puskesmas {res['region_manual']}</a>
+            <a href="https://www.google.com/search?q={q_rs}" target="_blank" class="action-btn btn-blue">☎️ Cari Nomor RS / Dokter di {res['region_manual']}</a>
             """, unsafe_allow_html=True)
 
         # ======================================================================
-        # LAPORAN SIAP KIRIM / UNDUH UNTUK PARAMEDIS 3T
+        # 4. KIRIM LAPORAN KE WHATSAPP BIDAN / DOKTER & UNDUH FILE
         # ======================================================================
         gejala_list = []
         if res["has_wheezing"]:
             gejala_list.append("Napas ngik-ngik/berlendir")
         if res["has_fever"]:
             gejala_list.append("Demam/batuk > 3 hari")
-        gejala_str = ", ".join(gejala_list) if gejala_list else "Tidak ada gejala tambahan dicentang"
+        gejala_str = ", ".join(gejala_list) if gejala_list else "Tidak ada gejala tambahan"
 
         laporan_teks = f"""LAPORAN SKRINING AWAL RESPIKIDD
 ========================================
@@ -511,16 +522,21 @@ Gejala Tambahan   : {gejala_str}
 Hasil Skrining AI : {status_label}
 Tingkat Keyakinan : {conf:.1f}%
 ----------------------------------------
-Catatan: Hasil ini merupakan skrining awal berbasis suara batuk dan bukan pengganti diagnosis medis dokter.
-"""
+Catatan: Hasil skrining awal suara batuk untuk membantu pemeriksaan tenaga medis."""
+
+        wa_encoded = urllib.parse.quote(laporan_teks)
+        st.markdown(f"""
+        <a href="https://wa.me/?text={wa_encoded}" target="_blank" class="action-btn btn-wa">💬 Kirim Hasil Skrining via WhatsApp ke Bidan / Dokter</a>
+        """, unsafe_allow_html=True)
+
         st.download_button(
-            label="📄 Unduh Laporan untuk Bidan / Dokter (.txt)",
+            label="📄 Unduh Laporan Rekam Medis (.txt)",
             data=laporan_teks,
             file_name=f"Skrining_RespiKidd_{res['child_name'].replace(' ', '_')}.txt",
             mime="text/plain"
         )
 
-        # Grafik Mel-Spectrogram
+        # 5. Grafik Mel-Spectrogram
         st.markdown("<p style='font-size:0.85rem; font-weight:800; color:#0369A1; margin-top:0.6rem; margin-bottom:0.2rem;'>Grafik Mel-Spectrogram:</p>", unsafe_allow_html=True)
         fig, ax = plt.subplots(figsize=(5, 2.3))
         librosa.display.specshow(res["mel_db"], sr=res["sr"], x_axis='time', y_axis='mel', ax=ax, cmap='magma')
