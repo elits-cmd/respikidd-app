@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import time
 import os
+from datetime import datetime
+from streamlit_js_eval import get_geolocation
 
 # 1. Konfigurasi Halaman
 st.set_page_config(
@@ -89,25 +91,47 @@ st.markdown("""
     .card-pink { background-color: #FFF1F2 !important; border-color: #FDA4AF !important; }
     .card-yellow { background-color: #FEFCE8 !important; border-color: #FDE047 !important; }
 
-    .stButton>button {
+    .stButton>button, .stDownloadButton>button {
         width: 100%;
         border-radius: 20px !important;
         padding: 0.75rem 1rem !important;
         font-family: 'Fredoka', sans-serif !important;
         font-weight: 600 !important;
-        font-size: 1.05rem !important;
+        font-size: 1.02rem !important;
         border: 2px solid #FFFFFF !important;
         background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%) !important;
         color: white !important;
         box-shadow: 0 6px 16px rgba(56, 189, 248, 0.35);
         transition: all 0.2s ease;
     }
-    .stButton>button:hover {
+    .stButton>button:hover, .stDownloadButton>button:hover {
         transform: translateY(-2px) scale(1.02);
         background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%) !important;
     }
-    .stButton>button p {
+    .stButton>button p, .stDownloadButton>button p {
         color: white !important;
+    }
+
+    .maps-btn {
+        display: block;
+        width: 100%;
+        text-align: center;
+        padding: 0.75rem 1rem;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: #FFFFFF !important;
+        font-family: 'Fredoka', sans-serif;
+        font-weight: 600;
+        font-size: 0.98rem;
+        text-decoration: none;
+        border: 2px solid #FFFFFF;
+        box-shadow: 0 6px 14px rgba(16, 185, 129, 0.3);
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .maps-btn:hover {
+        opacity: 0.95;
+        color: #FFFFFF !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -133,24 +157,14 @@ TOP_DOODLE_SVG = """
 BEAR_GUIDE_SVG = """
 <div style="text-align:center; margin: 0.2rem 0;">
 <svg width="115" height="115" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <path d="M28 45l3 6 6.5 1-4.7 4.5 1.1 6.5-5.9-3.1-5.9 3.1 1.1-6.5-4.7-4.5 6.5-1z" fill="#FDE047"/>
-  <circle cx="175" cy="50" r="6" fill="#F9A8D4"/>
-  <circle cx="168" cy="145" r="5" fill="#7DD3FC"/>
   <circle cx="52" cy="55" r="24" fill="#D4A373"/>
-  <circle cx="52" cy="55" r="13" fill="#FAEDCD"/>
   <circle cx="148" cy="55" r="24" fill="#D4A373"/>
-  <circle cx="148" cy="55" r="13" fill="#FAEDCD"/>
   <circle cx="100" cy="105" r="62" fill="#E6B88A"/>
   <ellipse cx="100" cy="122" rx="26" ry="20" fill="#FEFAE0"/>
   <circle cx="76" cy="96" r="6.5" fill="#3D2C2E"/>
-  <circle cx="78" cy="94" r="2.2" fill="#FFFFFF"/>
   <circle cx="124" cy="96" r="6.5" fill="#3D2C2E"/>
-  <circle cx="126" cy="94" r="2.2" fill="#FFFFFF"/>
-  <ellipse cx="63" cy="112" rx="10" ry="5.5" fill="#FF9AA2" opacity="0.8"/>
-  <ellipse cx="137" cy="112" rx="10" ry="5.5" fill="#FF9AA2" opacity="0.8"/>
   <ellipse cx="100" cy="114" rx="8" ry="5" fill="#5C4033"/>
   <path d="M 90 126 Q 100 136 110 126" stroke="#5C4033" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-  <path d="M 55 158 Q 100 175 145 158 L 138 180 Q 100 192 62 180 Z" fill="#7DD3FC"/>
 </svg>
 </div>
 """
@@ -158,12 +172,8 @@ BEAR_GUIDE_SVG = """
 BEAR_EDU_SVG = """
 <div style="text-align:center; margin: 0.2rem 0;">
 <svg width="115" height="115" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <path d="M172 42c-2.5-3.2-7.5-2.5-9 1-1.5-3.5-6.5-4.2-9-1-2.5 3.2-.8 7.8 9 12.8 9.8-5 11.5-9.6 9-12.8z" fill="#FDA4AF"/>
-  <path d="M28 135l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z" fill="#6EE7B7"/>
   <circle cx="52" cy="58" r="23" fill="#EDE0D4"/>
-  <circle cx="52" cy="58" r="12" fill="#FFB5A7"/>
   <circle cx="148" cy="58" r="23" fill="#EDE0D4"/>
-  <circle cx="148" cy="58" r="12" fill="#FFB5A7"/>
   <circle cx="100" cy="108" r="60" fill="#F5EBE0"/>
   <ellipse cx="100" cy="124" rx="24" ry="18" fill="#FFFFFF"/>
   <circle cx="76" cy="98" r="5.5" fill="#334155"/>
@@ -171,8 +181,6 @@ BEAR_EDU_SVG = """
   <circle cx="76" cy="98" r="16" stroke="#38BDF8" stroke-width="3.5" fill="none"/>
   <circle cx="124" cy="98" r="16" stroke="#38BDF8" stroke-width="3.5" fill="none"/>
   <line x1="92" y1="98" x2="108" y2="98" stroke="#38BDF8" stroke-width="3.5"/>
-  <ellipse cx="62" cy="115" rx="9" ry="5" fill="#FFCAD4"/>
-  <ellipse cx="138" cy="115" rx="9" ry="5" fill="#FFCAD4"/>
   <ellipse cx="100" cy="116" rx="7" ry="4.5" fill="#7F5539"/>
   <path d="M 92 127 Q 100 135 108 127" stroke="#7F5539" stroke-width="3" fill="none" stroke-linecap="round"/>
 </svg>
@@ -183,6 +191,10 @@ if "page" not in st.session_state:
     st.session_state.page = 1
 if "result_data" not in st.session_state:
     st.session_state.result_data = None
+if "ask_gps" not in st.session_state:
+    st.session_state.ask_gps = False
+if "user_coords" not in st.session_state:
+    st.session_state.user_coords = None
 
 def go_to(page_num):
     st.session_state.page = page_num
@@ -239,7 +251,7 @@ if st.session_state.page == 1:
     <div class="mobile-card card-yellow" style="text-align:center; margin-top:0.5rem;">
         <h2 style="color:#0369A1; margin:0 0 0.4rem 0; font-size:1.5rem;">Halo Ayah & Bunda!</h2>
         <p style="font-size:0.95rem; color:#475569; line-height:1.5; margin:0;">
-            <b>RespiKidd</b> membantu skrining dini gejala bronkitis pada batita lewat suara batuk dengan cara yang lembut, ceria, dan <b>bebas rasa takut</b>.
+            <b>RespiKidd</b> membantu skrining dini gejala bronkitis pada batita lewat suara batuk serta menghubungkan ke layanan kesehatan terdekat di seluruh Indonesia.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -253,186 +265,4 @@ elif st.session_state.page == 2:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
     st.markdown("<div style='text-align:center;'><span class='step-indicator'>Cara Pakai • 2/5</span></div>", unsafe_allow_html=True)
     
-    render_mascot(width_ratio=1.8, fallback_svg=BEAR_GUIDE_SVG)
-    
-    st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.35rem;'>Cara Menggunakan Aplikasi</h3>", unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="mobile-card card-blue">
-        <b style="color:#0369A1;">1. Tenangkan Si Kecil</b><br>
-        <span style="font-size:0.88rem;">Pastikan suasana sekitar cukup tenang agar suara batuk terekam jernih.</span>
-    </div>
-    <div class="mobile-card card-peach">
-        <b style="color:#C2410C;">2. Rekam / Unggah Suara</b><br>
-        <span style="font-size:0.88rem;">Dekatkan HP sekitar 15–20 cm saat anak batuk, atau pilih file audio.</span>
-    </div>
-    <div class="mobile-card card-mint">
-        <b style="color:#047857;">3. Lihat Hasil & Edukasi</b><br>
-        <span style="font-size:0.88rem;">AI menganalisis pola suara dalam hitungan detik beserta panduan medis.</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col_b1, col_b2 = st.columns([1, 2])
-    with col_b1:
-        st.button("⬅ Kembali", on_click=go_to, args=(1,))
-    with col_b2:
-        st.button("Lanjut Cek Batuk ➔", on_click=go_to, args=(3,))
-
-# ==============================================================================
-# LAYAR 3: REKAM / UNGGAH SUARA BATUK + TRIASE GEJALA
-# ==============================================================================
-elif st.session_state.page == 3:
-    st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Cek Suara • 3/5</span></div>", unsafe_allow_html=True)
-    
-    render_mascot(width_ratio=1.5, fallback_svg=BEAR_GUIDE_SVG)
-    
-    st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.35rem;'>Masukkan Suara Batuk</h3>", unsafe_allow_html=True)
-    st.markdown("""
-    <div class="mobile-card card-blue" style="text-align:center; padding:0.8rem;">
-        <span style="font-size:0.88rem;">Pilih rekam langsung lewat mikrofon HP atau unggah file rekaman (.wav / .mp3).</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-    tab1, tab2 = st.tabs(["Rekam Suara", "Unggah File"])
-    audio_data = None
-
-    with tab1:
-        rec = st.audio_input("Tekan ikon mic untuk merekam:")
-        if rec:
-            audio_data = rec
-
-    with tab2:
-        upl = st.file_uploader("Pilih file audio batuk:", type=["wav", "mp3", "ogg"])
-        if upl:
-            audio_data = upl
-
-    st.markdown("<p style='font-size:0.88rem; font-weight:700; color:#0369A1; margin-top:0.5rem; margin-bottom:0.2rem;'>Gejala Tambahan (Opsional):</p>", unsafe_allow_html=True)
-    c_g1, c_g2 = st.columns(2)
-    with c_g1:
-        has_wheezing = st.checkbox("Napas ngik-ngik / berlendir")
-    with c_g2:
-        has_fever = st.checkbox("Demam / batuk > 3 hari")
-
-    if audio_data is not None:
-        st.audio(audio_data)
-        if st.button("Analisis Suara Sekarang ✨"):
-            with st.spinner("Membersihkan noise & menganalisis suara batuk..."):
-                try:
-                    model = load_respikidd_model()
-                    start_time = time.time()
-
-                    img_input, spec_info, err_msg = preprocess_and_extract_mel(audio_data, use_noise_reduce=True)
-
-                    if err_msg:
-                        st.warning(err_msg)
-                    else:
-                        mel_spec_db, sr = spec_info
-                        raw_prob = float(model.predict(img_input, verbose=0)[0][0])
-                        
-                        bronchitis_score = 1.0 - raw_prob
-
-                        if has_wheezing:
-                            bronchitis_score = min(1.0, bronchitis_score + 0.08)
-                        if has_fever:
-                            bronchitis_score = min(1.0, bronchitis_score + 0.05)
-
-                        response_time = round(time.time() - start_time, 2)
-
-                        st.session_state.result_data = {
-                            "bronchitis_score": bronchitis_score,
-                            "raw_prob": raw_prob,
-                            "time": response_time,
-                            "mel_db": mel_spec_db,
-                            "sr": sr
-                        }
-                        st.session_state.page = 4
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"Terjadi kendala saat memproses audio: {e}")
-
-    st.write("")
-    st.button("⬅ Kembali ke Panduan", on_click=go_to, args=(2,))
-
-# ==============================================================================
-# LAYAR 4: HASIL ANALISIS AI & MEL-SPECTROGRAM
-# ==============================================================================
-elif st.session_state.page == 4:
-    st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Hasil Skrining • 4/5</span></div>", unsafe_allow_html=True)
-    
-    render_mascot(width_ratio=1.5, fallback_svg=BEAR_EDU_SVG)
-    
-    res = st.session_state.result_data
-
-    if res is not None:
-        b_score = res["bronchitis_score"]
-        if b_score >= 0.5:
-            conf = b_score * 100
-            st.markdown(f"""
-            <div class="mobile-card card-pink" style="text-align:center;">
-                <h3 style="color:#BE123C; margin:0;">Indikasi Gejala Bronkitis</h3>
-                <p style="font-size:0.88rem; margin-top:0.4rem;">
-                    Pola suara mengarah pada batuk berlendir/menyempit. Tetap tenang dan segera konsultasikan ke dokter atau Puskesmas terdekat.
-                </p>
-                <b style="color:#9F1239; font-size:0.85rem;">Keyakinan AI: {conf:.1f}% • Waktu: {res['time']} dtk</b>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            conf = (1.0 - b_score) * 100
-            st.markdown(f"""
-            <div class="mobile-card card-mint" style="text-align:center;">
-                <h3 style="color:#047857; margin:0;">Pola Batuk Non-Bronkitis</h3>
-                <p style="font-size:0.88rem; margin-top:0.4rem;">
-                    Tidak terdeteksi ciri khas bronkitis pada sampel suara ini. Terus pantau kondisi dan kecukupan cairan si kecil.
-                </p>
-                <b style="color:#065F46; font-size:0.85rem;">Keyakinan AI: {conf:.1f}% • Waktu: {res['time']} dtk</b>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        st.markdown("<p style='font-size:0.85rem; font-weight:800; color:#0369A1; margin-bottom:0.2rem;'>Grafik Mel-Spectrogram:</p>", unsafe_allow_html=True)
-        fig, ax = plt.subplots(figsize=(5, 2.3))
-        librosa.display.specshow(res["mel_db"], sr=res["sr"], x_axis='time', y_axis='mel', ax=ax, cmap='magma')
-        ax.set_xlabel("Waktu (detik)", fontsize=8)
-        ax.set_ylabel("Frekuensi", fontsize=8)
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close(fig)
-
-    col_r1, col_r2 = st.columns([1, 1.4])
-    with col_r1:
-        st.button("Cek Ulang", on_click=go_to, args=(3,))
-    with col_r2:
-        st.button("Baca Edukasi ➔", on_click=go_to, args=(5,))
-
-# ==============================================================================
-# LAYAR 5: EDUKASI SINGKAT
-# ==============================================================================
-elif st.session_state.page == 5:
-    st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Edukasi Singkat • 5/5</span></div>", unsafe_allow_html=True)
-    
-    render_mascot(width_ratio=1.8, fallback_svg=BEAR_EDU_SVG)
-    
-    st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.35rem;'>Info Singkat untuk Orang Tua</h3>", unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="mobile-card card-blue">
-        <b style="color:#0369A1;">Kenapa Batita Rentan?</b><br>
-        <span style="font-size:0.86rem;">Saluran napas anak di bawah 3 tahun masih sempit, sehingga peradangan mudah memicu lendir berlebih dan batuk berat.</span>
-    </div>
-    <div class="mobile-card card-pink">
-        <b style="color:#BE123C;">Tanda Bahaya (Segera ke Dokter)</b><br>
-        <span style="font-size:0.86rem;">Napas berbunyi ngik-ngik (<i>wheezing</i>), napas sangat cepat saat tenang, atau anak tampak lemas dan demam tinggi.</span>
-    </div>
-    <div class="mobile-card card-peach">
-        <b style="color:#C2410C;">Jauhkan Asap Rokok</b><br>
-        <span style="font-size:0.86rem;">Asap rokok di rumah memperparah iritasi saluran pernapasan batita. Jaga udara rumah tetap bersih.</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col_e1, col_e2 = st.columns([1, 1.3])
-    with col_e1:
-        st.button("⬅ Hasil", on_click=go_to, args=(4,))
-    with col_e2:
-        st.button("Kembali ke Awal", on_click=go_to, args=(1,))
+    render_
