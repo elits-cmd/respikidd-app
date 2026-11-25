@@ -1,7 +1,7 @@
 streamlit
-tensorflow
 librosa
 noisereduce
 numpy
 matplotlib
+tensorflow
 streamlit-js-eval
