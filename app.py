@@ -11,7 +11,7 @@ import os
 # 1. Konfigurasi Halaman
 st.set_page_config(
     page_title="RespiKidd Mobile App",
-    page_icon="assets/logo.png" if os.path.exists("assets/logo.png") else "🐾",
+    page_icon="assets/logo.png" if os.path.exists("assets/maskot.png.png") else "🐾",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
@@ -226,8 +226,8 @@ if st.session_state.page == 1:
     
     c1, c2, c3 = st.columns([0.8, 3.4, 0.8])
     with c2:
-        if os.path.exists("mascot.png"):
-            st.image("mascot.png", use_container_width=True)
+        if os.path.exists("mascot.png.png"):
+            st.image("mascot.png.png", use_container_width=True)
         else:
             st.markdown("<h1 style='text-align:center;'>RespiKidd</h1>", unsafe_allow_html=True)
 
