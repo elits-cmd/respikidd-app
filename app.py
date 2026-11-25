@@ -11,7 +11,7 @@ import os
 # 1. Konfigurasi Halaman
 st.set_page_config(
     page_title="RespiKidd Mobile App",
-    page_icon="main" if os.path.exists("maskot.png.png") else "🐾",
+    page_icon="main" if os.path.exists("mascot.png.png") else "🐾",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
