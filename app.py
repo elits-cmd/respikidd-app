@@ -13,7 +13,7 @@ from datetime import datetime
 
 # 1. Konfigurasi Halaman
 st.set_page_config(
-    page_title="RespiKidd Offline App",
+    page_title="RespiKidd App",
     page_icon="mascot.png.png" if os.path.exists("mascot.png.png") else "🐾",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -341,7 +341,7 @@ def preprocess_and_extract_mel(audio_file, use_noise_reduce=True):
 # ==============================================================================
 if st.session_state.page == 1:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Selamat Datang • 1/5</span><br><span class='offline-badge'>⚡ Mode 100% Offline Siap Pakai (3T)</span></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Selamat Datang • 1/5</span><br><span class='offline-badge'> Mode Offline </span></div>", unsafe_allow_html=True)
     
     render_mascot(width_ratio=3.4, fallback_svg=BEAR_GUIDE_SVG)
 
@@ -598,48 +598,6 @@ elif st.session_state.page == 4:
                 <a href="tel:{cf['telp']}" class="action-btn btn-blue" style="margin-top:0.4rem; margin-bottom:0;">📞 Hubungi {cf['nama']}</a>
             </div>
             """, unsafe_allow_html=True)
-
-        # ======================================================================
-        # 4. GPS SATELIT OFFLINE (TANPA INTERNET)
-        # ======================================================================
-        components.html("""
-        <div style="font-family: 'Segoe UI', sans-serif; background: #F0F9FF; border: 2px solid #7DD3FC; border-radius: 20px; padding: 12px; text-align: center;">
-            <div style="color: #0369A1; font-weight: 800; font-size: 13.5px; margin-bottom: 4px;">
-                🛰️ Ambil Koordinat GPS Satelit (Offline)
-            </div>
-            <div style="color: #475569; font-size: 12px; margin-bottom: 8px;">
-                Mengambil titik koordinat lokasi pasien untuk dicantumkan pada laporan rujukan medis.
-            </div>
-            <button id="gpsBtn" onclick="getOfflineGPS()" style="
-                width: 100%; padding: 9px 12px; border-radius: 14px; border: 2px solid #FFFFFF;
-                background: linear-gradient(135deg, #0284C7 0%, #2563EB 100%);
-                color: white; font-weight: 700; font-size: 13px; cursor: pointer;
-            ">📍 Izinkan & Baca Koordinat GPS</button>
-            <div id="gpsOut" style="font-size: 12.5px; font-weight: 700; color: #0F172A; margin-top: 8px;"></div>
-        </div>
-        <script>
-        function getOfflineGPS() {
-            const out = document.getElementById("gpsOut");
-            const btn = document.getElementById("gpsBtn");
-            if (!navigator.geolocation) {
-                out.innerHTML = "❌ Perangkat tidak mendukung GPS.";
-                return;
-            }
-            btn.innerHTML = "🛰️ Mengunci sinyal satelit GPS...";
-            navigator.geolocation.getCurrentPosition(
-                function(pos) {
-                    btn.style.display = "none";
-                    out.innerHTML = "✅ Koordinat: " + pos.coords.latitude.toFixed(5) + ", " + pos.coords.longitude.toFixed(5) + "<br><span style='font-weight:400; font-size:11px; color:#475569;'>Catat/screenshot koordinat ini untuk tim evakuasi medis.</span>";
-                },
-                function(err) {
-                    btn.innerHTML = "📍 Coba Baca GPS Lagi";
-                    out.innerHTML = "⚠️ Izin lokasi ditolak atau GPS perangkat belum aktif.";
-                },
-                { enableHighAccuracy: true, timeout: 10000 }
-            );
-        }
-        </script>
-        """, height=145)
 
         # ======================================================================
         # 5. KIRIM VIA SMS (TANPA KUOTA) & UNDUH REKAM MEDIS OFFLINE (.TXT)
