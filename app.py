@@ -577,19 +577,7 @@ elif st.session_state.page == 4:
                     <a href="tel:{f['telp']}" class="action-btn btn-green" style="margin-top:0.4rem; margin-bottom:0;">📞 Telepon {f['nama']}</a>
                 </div>
                 """, unsafe_allow_html=True)
-
-        # Fitur Tambah Kontak Bidan / Dokter / Puskesmas Desa Setempat (Offline)
-        with st.expander("➕ Tambah Kontak Bidan / Dokter / Puskesmas Desa Lokal"):
-            new_faskes_name = st.text_input("Nama Bidan / Dokter / Puskesmas:", placeholder="Contoh: Bidan Ani (Pustu Desa)")
-            new_faskes_phone = st.text_input("Nomor HP / Telepon:", placeholder="Contoh: 081234567890")
-            if st.button("Simpan Kontak Lokal"):
-                if new_faskes_name.strip() and new_faskes_phone.strip():
-                    st.session_state.custom_faskes_list.append({
-                        "nama": new_faskes_name.strip(),
-                        "telp": new_faskes_phone.strip()
-                    })
-                    st.success("Kontak lokal tersimpan!")
-
+                
         for cf in st.session_state.custom_faskes_list:
             st.markdown(f"""
             <div class="mobile-card card-mint" style="padding:0.8rem 1rem; margin-bottom:0.5rem;">
