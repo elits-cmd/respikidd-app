@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import librosa
 import librosa.display
 import noisereduce as nr
@@ -7,14 +6,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import time
-import os
 import urllib.parse
 from datetime import datetime
 
-# 1. Konfigurasi Halaman
+# 1. Konfigurasi Halaman (100% Offline, tanpa dependensi file gambar eksternal)
 st.set_page_config(
     page_title="RespiKidd App",
-    page_icon="mascot.png.png" if os.path.exists("mascot.png.png") else "🐾",
+    page_icon="🐱",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
@@ -35,15 +33,23 @@ st.markdown("""
         font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
     }
 
+    .main {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+
     [data-testid="stMainBlockContainer"], .block-container {
         max-width: 440px !important;
         width: 92% !important;
+        height: auto !important;
+        min-height: fit-content !important;
         background-color: #FFFDF7 !important;
         background-image: radial-gradient(#FDE68A 1.2px, transparent 1.2px), radial-gradient(#BAE6FD 1.2px, #FFFDF7 1.2px);
         background-size: 36px 36px;
         background-position: 0 0, 18px 18px;
-        margin-top: 2rem !important;
-        margin-bottom: 2rem !important;
+        margin: 1.5rem auto !important;
         padding: 1.8rem 1.4rem 2rem 1.4rem !important;
         border-radius: 36px !important;
         border: 7px solid #FFFFFF !important;
@@ -236,6 +242,9 @@ OFFLINE_FASKES_DB = {
     ]
 }
 
+# ==============================================================================
+# DOODLE & ILUSTRASI KUCING DOKTER PASTEL (100% VECTOR SVG OFFLINE)
+# ==============================================================================
 TOP_DOODLE_SVG = """
 <div style="text-align:center; margin-bottom:-0.3rem;">
 <svg width="240" height="42" viewBox="0 0 240 42" xmlns="http://www.w3.org/2000/svg">
@@ -254,39 +263,94 @@ TOP_DOODLE_SVG = """
 </div>
 """
 
-BEAR_GUIDE_SVG = """
+# Kucing Dokter Oranye Pastel (Utama & Panduan)
+CAT_DOCTOR_SVG = """
 <div style="text-align:center; margin: 0.2rem 0;">
-<svg width="115" height="115" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="52" cy="55" r="24" fill="#D4A373"/>
-  <circle cx="148" cy="55" r="24" fill="#D4A373"/>
-  <circle cx="100" cy="105" r="62" fill="#E6B88A"/>
-  <ellipse cx="100" cy="122" rx="26" ry="20" fill="#FEFAE0"/>
-  <circle cx="76" cy="96" r="6.5" fill="#3D2C2E"/>
-  <circle cx="124" cy="96" r="6.5" fill="#3D2C2E"/>
-  <ellipse cx="100" cy="114" rx="8" ry="5" fill="#5C4033"/>
-  <path d="M 90 126 Q 100 136 110 126" stroke="#5C4033" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+<svg width="145" height="145" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bintang & Hati Dekorasi -->
+  <path d="M26 52l3 6 6.5 1-4.7 4.5 1.1 6.5-5.9-3.1-5.9 3.1 1.1-6.5-4.7-4.5 6.5-1z" fill="#FDE047"/>
+  <path d="M194 48c-2.5-3.2-7.5-2.5-9 1-1.5-3.5-6.5-4.2-9-1-2.5 3.2-.8 7.8 9 12.8 9.8-5 11.5-9.6 9-12.8z" fill="#F9A8D4"/>
+  <!-- Ekor Kucing -->
+  <path d="M152 175 Q188 165 182 135 Q178 122 168 128 Q162 132 166 144 Q168 156 148 162 Z" fill="#FB923C" stroke="#7C2D12" stroke-width="3"/>
+  <!-- Jas Dokter Putih -->
+  <path d="M62 142 Q110 132 158 142 L166 196 Q110 204 54 196 Z" fill="#FFFFFF" stroke="#334155" stroke-width="3"/>
+  <path d="M96 140 L110 170 L124 140 Z" fill="#BAE6FD"/>
+  <line x1="110" y1="168" x2="110" y2="198" stroke="#94A3B8" stroke-width="2.5"/>
+  <!-- Stetoskop Biru Pastel -->
+  <path d="M84 140 Q82 174 110 174 Q138 174 136 140" fill="none" stroke="#0284C7" stroke-width="4.5" stroke-linecap="round"/>
+  <circle cx="136" cy="172" r="9" fill="#E0F2FE" stroke="#0284C7" stroke-width="3"/>
+  <circle cx="136" cy="172" r="4" fill="#38BDF8"/>
+  <!-- Tangan Melambai -->
+  <ellipse cx="48" cy="136" rx="14" ry="12" fill="#FFF7ED" stroke="#7C2D12" stroke-width="3"/>
+  <circle cx="48" cy="137" r="5" fill="#FDA4AF"/>
+  <circle cx="42" cy="130" r="2.5" fill="#FDA4AF"/>
+  <circle cx="48" cy="128" r="2.5" fill="#FDA4AF"/>
+  <circle cx="54" cy="130" r="2.5" fill="#FDA4AF"/>
+  <!-- Telinga Kucing -->
+  <path d="M56 82 L48 34 L90 56 Z" fill="#FB923C" stroke="#7C2D12" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M61 74 L56 45 L82 60 Z" fill="#FBCFE8"/>
+  <path d="M164 82 L172 34 L130 56 Z" fill="#FB923C" stroke="#7C2D12" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M159 74 L164 45 L138 60 Z" fill="#FBCFE8"/>
+  <!-- Kepala Kucing -->
+  <ellipse cx="110" cy="98" rx="60" ry="50" fill="#FB923C" stroke="#7C2D12" stroke-width="3"/>
+  <!-- Area Putih Wajah -->
+  <path d="M62 108 Q110 78 158 108 Q154 144 110 146 Q66 144 62 108 Z" fill="#FFFDF9"/>
+  <!-- Belang Dahi -->
+  <path d="M100 50 L104 65 L110 52 L116 65 L120 50" fill="none" stroke="#EA580C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Mata Senyum -->
+  <path d="M78 96 Q87 86 96 96" fill="none" stroke="#334155" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M124 96 Q133 86 142 96" fill="none" stroke="#334155" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- Pipi Pink -->
+  <ellipse cx="75" cy="110" rx="10" ry="5.5" fill="#FDA4AF" opacity="0.85"/>
+  <ellipse cx="145" cy="110" rx="10" ry="5.5" fill="#FDA4AF" opacity="0.85"/>
+  <!-- Hidung & Mulut -->
+  <polygon points="105,108 115,108 110,114" fill="#F43F5E"/>
+  <path d="M98 119 Q104 126 110 118 Q116 126 122 119" fill="none" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+  <!-- Kumis -->
+  <line x1="42" y1="102" x2="62" y2="105" stroke="#7C2D12" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="40" y1="114" x2="61" y2="113" stroke="#7C2D12" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="158" y1="105" x2="178" y2="102" stroke="#7C2D12" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="159" y1="113" x2="180" y2="114" stroke="#7C2D12" stroke-width="2.5" stroke-linecap="round"/>
 </svg>
 </div>
 """
 
-BEAR_EDU_SVG = """
+# Kucing Pintar Berkacamata (Halaman Edukasi)
+CAT_SMART_SVG = """
 <div style="text-align:center; margin: 0.2rem 0;">
-<svg width="115" height="115" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="52" cy="58" r="23" fill="#EDE0D4"/>
-  <circle cx="148" cy="58" r="23" fill="#EDE0D4"/>
-  <circle cx="100" cy="108" r="60" fill="#F5EBE0"/>
-  <ellipse cx="100" cy="124" rx="24" ry="18" fill="#FFFFFF"/>
-  <circle cx="76" cy="98" r="5.5" fill="#334155"/>
-  <circle cx="124" cy="98" r="5.5" fill="#334155"/>
-  <circle cx="76" cy="98" r="16" stroke="#38BDF8" stroke-width="3.5" fill="none"/>
-  <circle cx="124" cy="98" r="16" stroke="#38BDF8" stroke-width="3.5" fill="none"/>
-  <line x1="92" y1="98" x2="108" y2="98" stroke="#38BDF8" stroke-width="3.5"/>
-  <ellipse cx="100" cy="116" rx="7" ry="4.5" fill="#7F5539"/>
-  <path d="M 92 127 Q 100 135 108 127" stroke="#7F5539" stroke-width="3" fill="none" stroke-linecap="round"/>
+<svg width="120" height="120" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+  <path d="M188 45l3 6 6.5 1-4.7 4.5 1.1 6.5-5.9-3.1-5.9 3.1 1.1-6.5-4.7-4.5 6.5-1z" fill="#6EE7B7"/>
+  <!-- Telinga -->
+  <path d="M56 85 L48 36 L90 58 Z" fill="#FDBA74" stroke="#7C2D12" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M62 77 L57 48 L82 62 Z" fill="#FBCFE8"/>
+  <path d="M164 85 L172 36 L130 58 Z" fill="#FDBA74" stroke="#7C2D12" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M158 77 L163 48 L138 62 Z" fill="#FBCFE8"/>
+  <!-- Kepala -->
+  <ellipse cx="110" cy="105" rx="60" ry="52" fill="#FED7AA" stroke="#7C2D12" stroke-width="3"/>
+  <path d="M64 115 Q110 86 156 115 Q152 152 110 154 Q68 152 64 115 Z" fill="#FFFDF9"/>
+  <!-- Kacamata Bulat Biru -->
+  <circle cx="86" cy="102" r="18" fill="#E0F2FE" fill-opacity="0.45" stroke="#0284C7" stroke-width="3.5"/>
+  <circle cx="134" cy="102" r="18" fill="#E0F2FE" fill-opacity="0.45" stroke="#0284C7" stroke-width="3.5"/>
+  <line x1="104" y1="102" x2="116" y2="102" stroke="#0284C7" stroke-width="3.5"/>
+  <!-- Mata -->
+  <circle cx="86" cy="102" r="5.5" fill="#1E293B"/>
+  <circle cx="88" cy="100" r="2" fill="#FFFFFF"/>
+  <circle cx="134" cy="102" r="5.5" fill="#1E293B"/>
+  <circle cx="136" cy="100" r="2" fill="#FFFFFF"/>
+  <!-- Pipi, Hidung, Senyum -->
+  <ellipse cx="72" cy="120" rx="9" ry="5" fill="#FDA4AF" opacity="0.8"/>
+  <ellipse cx="148" cy="120" rx="9" ry="5" fill="#FDA4AF" opacity="0.8"/>
+  <polygon points="105,116 115,116 110,122" fill="#F43F5E"/>
+  <path d="M100 127 Q110 135 120 127" fill="none" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+  <!-- Syal Biru Pastel -->
+  <path d="M64 156 Q110 174 156 156 L150 182 Q110 194 70 182 Z" fill="#38BDF8" stroke="#0369A1" stroke-width="2.5"/>
 </svg>
 </div>
 """
 
+# ==============================================================================
+# STATE & MODEL PIPELINE (100% OFFLINE)
+# ==============================================================================
 if "page" not in st.session_state:
     st.session_state.page = 1
 if "result_data" not in st.session_state:
@@ -297,39 +361,42 @@ if "custom_faskes_list" not in st.session_state:
 def go_to(page_num):
     st.session_state.page = page_num
 
-def render_mascot(width_ratio=2.4, fallback_svg=BEAR_GUIDE_SVG):
-    if os.path.exists("mascot.png.png"):
-        side = (5.0 - width_ratio) / 2
-        c1, c2, c3 = st.columns([side, width_ratio, side])
-        with c2:
-            st.image("mascot.png.png", use_container_width=True)
-    elif fallback_svg:
-        st.markdown(fallback_svg, unsafe_allow_html=True)
-
 @st.cache_resource
 def load_respikidd_model():
     return tf.keras.models.load_model('respikidd_model.keras')
 
-def preprocess_and_extract_mel(audio_file, use_noise_reduce=True):
+def preprocess_and_extract_mel(audio_file, use_noise_reduce=False):
+    # Muat audio 3 detik pada sample rate standar 22050 Hz
     y, sr = librosa.load(audio_file, sr=22050, duration=3.0)
 
+    # Validasi volume agar tidak memproses file kosong/hening
     rms = np.mean(librosa.feature.rms(y=y))
-    if rms < 0.005:
-        return None, None, "Suara terlalu pelan atau tidak terdeteksi batuk. Dekatkan HP 15–20 cm dan coba rekam ulang."
+    if rms < 0.004:
+        return None, None, "Suara terlalu pelan atau hening. Dekatkan HP 15–20 cm saat anak batuk dan coba lagi."
 
+    # Denoising ringan (opsional untuk ruangan ramai) agar frekuensi rendah wheezing tidak hilang
     if use_noise_reduce:
-        y = nr.reduce_noise(y=y, sr=sr, prop_decrease=0.75, stationary=True)
+        y = nr.reduce_noise(y=y, sr=sr, prop_decrease=0.55, stationary=True)
 
-    y_trim, _ = librosa.effects.trim(y, top_db=25)
-    if len(y_trim) > int(0.3 * sr):
+    # Potong bagian hening di awal dan akhir rekaman
+    y_trim, _ = librosa.effects.trim(y, top_db=28)
+    if len(y_trim) > int(0.35 * sr):
         y = y_trim
 
+    # Normalisasi amplitudo sinyal audio
     y_norm = librosa.util.normalize(y)
 
+    # Ekstraksi Mel-Spectrogram (128x128)
     mel_spec = librosa.feature.melspectrogram(y=y_norm, sr=sr, n_mels=128)
     mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
 
-    mel_norm = np.clip((mel_spec_db + 80.0) / 80.0, 0.0, 1.0)
+    # Min-max normalization yang stabil terhadap variasi volume mikrofon HP
+    mel_min, mel_max = mel_spec_db.min(), mel_spec_db.max()
+    if mel_max - mel_min > 1e-6:
+        mel_norm = (mel_spec_db - mel_min) / (mel_max - mel_min)
+    else:
+        mel_norm = np.clip((mel_spec_db + 80.0) / 80.0, 0.0, 1.0)
+
     mel_resized = tf.image.resize(mel_norm[..., np.newaxis], (128, 128)).numpy()
     img_input = np.expand_dims(mel_resized, axis=0)
 
@@ -337,16 +404,16 @@ def preprocess_and_extract_mel(audio_file, use_noise_reduce=True):
 
 
 # ==============================================================================
-# LAYAR 1: SPLASH & SAMBUTAN MASKOT UTAMA
+# LAYAR 1: SPLASH & SAMBUTAN MASKOT KUCING
 # ==============================================================================
 if st.session_state.page == 1:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Selamat Datang • 1/5</span><br><span class='offline-badge'> Mode Offline </span></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Selamat Datang • 1/5</span><br><span class='offline-badge'>100% Mode Offline Siap Pakai</span></div>", unsafe_allow_html=True)
     
-    render_mascot(width_ratio=3.4, fallback_svg=BEAR_GUIDE_SVG)
+    st.markdown(CAT_DOCTOR_SVG, unsafe_allow_html=True)
 
     st.markdown("""
-    <div class="mobile-card card-yellow" style="text-align:center; margin-top:0.5rem;">
+    <div class="mobile-card card-yellow" style="text-align:center; margin-top:0.3rem;">
         <h2 style="color:#0369A1; margin:0 0 0.4rem 0; font-size:1.5rem;">Halo Ayah & Bunda!</h2>
         <p style="font-size:0.95rem; color:#475569; line-height:1.5; margin:0;">
             <b>RespiKidd</b> bekerja <b>tanpa koneksi internet</b> untuk skrining dini gejala bronkitis pada batita lewat suara batuk, dilengkapi database kontak Puskesmas & RS rujukan seluruh Indonesia.
@@ -363,7 +430,7 @@ elif st.session_state.page == 2:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
     st.markdown("<div style='text-align:center;'><span class='step-indicator'>Cara Pakai • 2/5</span></div>", unsafe_allow_html=True)
     
-    render_mascot(width_ratio=1.8, fallback_svg=BEAR_GUIDE_SVG)
+    st.markdown(CAT_DOCTOR_SVG, unsafe_allow_html=True)
     
     st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.35rem;'>Cara Menggunakan Aplikasi</h3>", unsafe_allow_html=True)
 
@@ -395,13 +462,11 @@ elif st.session_state.page == 3:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
     st.markdown("<div style='text-align:center;'><span class='step-indicator'>Data & Suara • 3/5</span></div>", unsafe_allow_html=True)
     
-    render_mascot(width_ratio=1.4, fallback_svg=BEAR_GUIDE_SVG)
-    
     st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.3rem;'>Data Anak & Suara Batuk</h3>", unsafe_allow_html=True)
 
     st.markdown("""
     <div class="mobile-card card-yellow" style="padding:0.75rem 1rem; margin-bottom:0.6rem;">
-        <b style="color:#9A3412; font-size:0.88rem;">📋 Identitas Pasien (Pendataan Offline 3T)</b><br>
+        <b style="color:#9A3412; font-size:0.88rem;">Identitas Pasien (Pendataan Offline 3T)</b><br>
         <span style="font-size:0.8rem; color:#78350F;">Membantu bidan, perawat, atau dokter Puskesmas mendata pasien dengan cepat.</span>
     </div>
     """, unsafe_allow_html=True)
@@ -414,9 +479,9 @@ elif st.session_state.page == 3:
         child_age = st.number_input("Usia (Bulan)", min_value=1, max_value=60, value=18)
 
     selected_region = st.selectbox("Pilih Provinsi / Wilayah Rujukan *", list(OFFLINE_FASKES_DB.keys()))
-    region_detail = st.text_input("Desa / Kecamatan / Puskesmas Setempat", placeholder="Contoh: Desa Wouma, Kec. Wamena")
+    region_detail = st.text_input("Desa / Kecamatan / Puskesmas Setempat", placeholder="Contoh: Desa Cimenyan, Kab. Bandung")
 
-    st.markdown("<p style='font-size:0.9rem; font-weight:800; color:#0369A1; margin-top:0.6rem; margin-bottom:0.2rem;'>🎙️ Rekam atau Unggah Suara Batuk:</p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size:0.9rem; font-weight:800; color:#0369A1; margin-top:0.6rem; margin-bottom:0.2rem;'>Rekam atau Unggah Suara Batuk:</p>", unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["Rekam Suara", "Unggah File"])
     audio_data = None
@@ -431,12 +496,13 @@ elif st.session_state.page == 3:
         if upl:
             audio_data = upl
 
-    st.markdown("<p style='font-size:0.88rem; font-weight:700; color:#0369A1; margin-top:0.5rem; margin-bottom:0.2rem;'>Gejala Tambahan (Opsional):</p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size:0.88rem; font-weight:700; color:#0369A1; margin-top:0.5rem; margin-bottom:0.2rem;'>Gejala Tambahan & Lingkungan (Opsional):</p>", unsafe_allow_html=True)
     c_g1, c_g2 = st.columns(2)
     with c_g1:
         has_wheezing = st.checkbox("Napas ngik-ngik / berlendir")
     with c_g2:
         has_fever = st.checkbox("Demam / batuk > 3 hari")
+    noisy_env = st.checkbox("Aktifkan filter bising (jika ruangan ramai)", value=False)
 
     if audio_data is not None:
         st.audio(audio_data)
@@ -444,25 +510,28 @@ elif st.session_state.page == 3:
             if not child_name.strip() or not parent_name.strip():
                 st.warning("Mohon isi **Nama Anak** dan **Nama Orang Tua / Wali** terlebih dahulu.")
             else:
-                with st.spinner("Membersihkan noise & menganalisis suara secara offline..."):
+                with st.spinner("Menganalisis gelombang suara secara offline..."):
                     try:
                         model = load_respikidd_model()
                         start_time = time.time()
 
-                        img_input, spec_info, err_msg = preprocess_and_extract_mel(audio_data, use_noise_reduce=True)
+                        img_input, spec_info, err_msg = preprocess_and_extract_mel(
+                            audio_data, use_noise_reduce=noisy_env
+                        )
 
                         if err_msg:
                             st.warning(err_msg)
                         else:
                             mel_spec_db, sr = spec_info
+                            # Model dilatih dengan 0 = Bronkitis, 1 = Non-Bronkitis
                             raw_prob = float(model.predict(img_input, verbose=0)[0][0])
-                            
                             bronchitis_score = 1.0 - raw_prob
 
+                            # Penyesuaian gejala klinis ringan tanpa mendominasi keputusan akustik AI
                             if has_wheezing:
-                                bronchitis_score = min(1.0, bronchitis_score + 0.08)
-                            if has_fever:
                                 bronchitis_score = min(1.0, bronchitis_score + 0.05)
+                            if has_fever:
+                                bronchitis_score = min(1.0, bronchitis_score + 0.03)
 
                             response_time = round(time.time() - start_time, 2)
 
@@ -496,8 +565,6 @@ elif st.session_state.page == 4:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
     st.markdown("<div style='text-align:center;'><span class='step-indicator'>Hasil Skrining • 4/5</span></div>", unsafe_allow_html=True)
     
-    render_mascot(width_ratio=1.4, fallback_svg=BEAR_EDU_SVG)
-    
     res = st.session_state.result_data
 
     if res is not None:
@@ -508,19 +575,19 @@ elif st.session_state.page == 4:
         # 1. Kartu Identitas Pasien
         st.markdown(f"""
         <div class="mobile-card card-blue" style="padding:0.85rem 1rem; margin-bottom:0.7rem;">
-            <div style="font-size:0.82rem; color:#0369A1; font-weight:800;">🪪 REKAM SKRINING PASIEN (OFFLINE)</div>
+            <div style="font-size:0.82rem; color:#0369A1; font-weight:800;">REKAM SKRINING PASIEN (OFFLINE)</div>
             <div style="font-size:0.88rem; margin-top:0.25rem;">
                 <b>Anak:</b> {res['child_name']} ({res['child_age']} bln)<br>
                 <b>Orang Tua/Wali:</b> {res['parent_name']}<br>
                 <b>Wilayah:</b> {wilayah_tampil}<br>
-            
-        
+                <b>Waktu:</b> {res['timestamp']}
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # 2. Kartu Hasil Analisis AI
+        # 2. Kartu Hasil Analisis AI (Threshold 0.52 untuk keseimbangan sensitivitas & spesifisitas)
         b_score = res["bronchitis_score"]
-        if b_score >= 0.5:
+        if b_score >= 0.52:
             conf = b_score * 100
             status_label = "INDIKASI GEJALA BRONKITIS"
             st.markdown(f"""
@@ -545,22 +612,21 @@ elif st.session_state.page == 4:
             </div>
             """, unsafe_allow_html=True)
 
-        # ======================================================================
-        # 3. DIREKTORI KONTAK OFFLINE: DARURAT NASIONAL, RSUD & PUSKESMAS
-        # ======================================================================
+        st.caption(f"Skor Mentah AI (0=Bronkitis, 1=Non-Bronkitis): {res['raw_prob']:.4f}")
+
+        # 3. Direktori Kontak Offline
         st.markdown("""
         <div class="mobile-card card-peach" style="padding:0.95rem 1rem; margin-bottom:0.6rem;">
-            <b style="color:#C2410C; font-size:0.95rem;">📞 Direktori Kontak Medis Offline</b><br>
+            <b style="color:#C2410C; font-size:0.95rem;">Direktori Kontak Medis Offline</b><br>
             <span style="font-size:0.82rem; color:#7C2D12;">
                 Tekan tombol untuk menelepon langsung via jaringan seluler (tanpa kuota internet):
             </span>
-            <a href="tel:119" class="action-btn btn-red">🚑 Darurat Medis Kemenkes (119)</a>
-            <a href="tel:112" class="action-btn btn-red" style="background:linear-gradient(135deg, #EA580C 0%, #C2410C 100%);">🆘 Panggilan Darurat Nasional (112)</a>
-            <a href="tel:1500567" class="action-btn btn-amber">☎️ Halo Kemenkes RI (1500-567)</a>
+            <a href="tel:119" class="action-btn btn-red">Darurat Medis Kemenkes (119)</a>
+            <a href="tel:112" class="action-btn btn-red" style="background:linear-gradient(135deg, #EA580C 0%, #C2410C 100%);">Panggilan Darurat Nasional (112)</a>
+            <a href="tel:1500567" class="action-btn btn-amber">Halo Kemenkes RI (1500-567)</a>
         </div>
         """, unsafe_allow_html=True)
 
-        # Tampilkan daftar RSUD & Puskesmas sesuai provinsi yang dipilih di Layar 3 (atau ubah di sini)
         wilayah_pilih = st.selectbox(
             "Lihat Kontak RSUD / Puskesmas Wilayah:",
             list(OFFLINE_FASKES_DB.keys()),
@@ -572,24 +638,13 @@ elif st.session_state.page == 4:
             for f in faskes_list:
                 st.markdown(f"""
                 <div class="mobile-card" style="padding:0.8rem 1rem; margin-bottom:0.5rem; border-color:#BAE6FD;">
-                    <b style="color:#0369A1; font-size:0.9rem;">🏥 {f['nama']}</b><br>
+                    <b style="color:#0369A1; font-size:0.9rem;">{f['nama']}</b><br>
                     <span style="font-size:0.8rem; color:#64748B;">{f['ket']} • Telp: <b>{f['telp']}</b></span>
-                    <a href="tel:{f['telp']}" class="action-btn btn-green" style="margin-top:0.4rem; margin-bottom:0;">📞 Telepon {f['nama']}</a>
+                    <a href="tel:{f['telp']}" class="action-btn btn-green" style="margin-top:0.4rem; margin-bottom:0;">Telepon {f['nama']}</a>
                 </div>
                 """, unsafe_allow_html=True)
-                
-        for cf in st.session_state.custom_faskes_list:
-            st.markdown(f"""
-            <div class="mobile-card card-mint" style="padding:0.8rem 1rem; margin-bottom:0.5rem;">
-                <b style="color:#047857; font-size:0.9rem;">🩺 {cf['nama']} (Kontak Lokal)</b><br>
-                <span style="font-size:0.82rem;">Nomor: <b>{cf['telp']}</b></span>
-                <a href="tel:{cf['telp']}" class="action-btn btn-blue" style="margin-top:0.4rem; margin-bottom:0;">📞 Hubungi {cf['nama']}</a>
-            </div>
-            """, unsafe_allow_html=True)
 
-        # ======================================================================
-        # 5. KIRIM VIA SMS (TANPA KUOTA) & UNDUH REKAM MEDIS OFFLINE (.TXT)
-        # ======================================================================
+        # 4. Kirim via SMS & Simpan Laporan Rekam Medis (.txt)
         gejala_list = []
         if res["has_wheezing"]:
             gejala_list.append("Napas ngik-ngik/berlendir")
@@ -613,17 +668,17 @@ Catatan: Hasil skrining awal suara batuk untuk membantu pemeriksaan bidan/dokter
 
         sms_encoded = urllib.parse.quote(laporan_teks)
         st.markdown(f"""
-        <a href="sms:?body={sms_encoded}" class="action-btn btn-blue">✉️ Kirim Laporan via SMS (Tanpa Kuota Data)</a>
+        <a href="sms:?body={sms_encoded}" class="action-btn btn-blue">Kirim Laporan via SMS (Tanpa Kuota Data)</a>
         """, unsafe_allow_html=True)
 
         st.download_button(
-            label="📄 Simpan Laporan Rekam Medis ke HP (.txt)",
+            label="Simpan Laporan Rekam Medis ke HP (.txt)",
             data=laporan_teks,
             file_name=f"Skrining_RespiKidd_{res['child_name'].replace(' ', '_')}.txt",
             mime="text/plain"
         )
 
-        # 6. Grafik Mel-Spectrogram
+        # 5. Grafik Mel-Spectrogram
         st.markdown("<p style='font-size:0.85rem; font-weight:800; color:#0369A1; margin-top:0.6rem; margin-bottom:0.2rem;'>Grafik Mel-Spectrogram:</p>", unsafe_allow_html=True)
         fig, ax = plt.subplots(figsize=(5, 2.3))
         librosa.display.specshow(res["mel_db"], sr=res["sr"], x_axis='time', y_axis='mel', ax=ax, cmap='magma')
@@ -640,13 +695,13 @@ Catatan: Hasil skrining awal suara batuk untuk membantu pemeriksaan bidan/dokter
         st.button("Baca Edukasi ➔", on_click=go_to, args=(5,))
 
 # ==============================================================================
-# LAYAR 5: EDUKASI SINGKAT
+# LAYAR 5: EDUKASI SINGKAT (KUCING PINTAR BERKACAMATA)
 # ==============================================================================
 elif st.session_state.page == 5:
     st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
     st.markdown("<div style='text-align:center;'><span class='step-indicator'>Edukasi Singkat • 5/5</span></div>", unsafe_allow_html=True)
     
-    render_mascot(width_ratio=1.8, fallback_svg=BEAR_EDU_SVG)
+    st.markdown(CAT_SMART_SVG, unsafe_allow_html=True)
     
     st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.35rem;'>Info Singkat untuk Orang Tua</h3>", unsafe_allow_html=True)
 
