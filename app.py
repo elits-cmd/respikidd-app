@@ -1,727 +1,546 @@
-import streamlit as st
-import librosa
-import librosa.display
-import noisereduce as nr
-import numpy as np
-import matplotlib.pyplot as plt
-import tensorflow as tf
+import os
 import time
-import urllib.parse
+import wave
 from datetime import datetime
+import numpy as np
+from scipy.io import wavfile
+from scipy import signal
 
-# 1. Konfigurasi Halaman (100% Offline, tanpa dependensi file gambar eksternal)
-st.set_page_config(
-    page_title="RespiKidd App",
-    page_icon="🐱",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
+from kivy.app import App
+from kivy.core.window import Window
+from kivy.utils import get_color_from_hex
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.textinput import TextInput
+from kivy.uix.spinner import Spinner
+from kivy.uix.checkbox import CheckBox
+from kivy.uix.filechooser import FileChooserListView
+from kivy.uix.popup import Popup
+from kivy.graphics import Color, RoundedRectangle
 
-# 2. Custom CSS: 100% OFFLINE (Tanpa Google Fonts eksternal agar instan tanpa sinyal)
-st.markdown("""
-<style>
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
-    [data-testid="stSidebar"] {display: none;}
+# Import TFLite Runtime (atau fallback ke TensorFlow Lite di PC)
+try:
+    import tflite_runtime.interpreter as tflite
+except ImportError:
+    import tensorflow.lite as tflite
 
-    .stApp {
-        background-color: #E0F7FA;
-        background-image: 
-            url("data:image/svg+xml,%3Csvg width='180' height='180' viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cpath d='M35 55c-6.6 0-12-5.4-12-12 0-5.8 4.1-10.6 9.6-11.8C34.5 24.8 40.4 20 47.5 20c8.6 0 15.5 6.9 15.5 15.5 0 .6 0 1.2-.1 1.8 4.6 1.5 8.1 5.8 8.1 11 0 6.5-5.2 11.7-11.7 11.7H35z' fill='%23FFFFFF' fill-opacity='0.85'/%3E%3Cpath d='M135 32l3.2 6.5 7.2 1-5.2 5.1 1.2 7.2-6.4-3.4-6.4 3.4 1.2-7.2-5.2-5.1 7.2-1z' fill='%23FDE047' fill-opacity='0.9'/%3E%3Cpath d='M45 130c-3.5-4.5-10.5-3.5-12.5 1.5-2-5-9-6-12.5-1.5-3.5 4.5-1 11 12.5 18 13.5-7 16-13.5 12.5-18z' fill='%23F9A8D4' fill-opacity='0.75'/%3E%3Cpath d='M130 125q5 0 5-5 0 5 5 5-5 0-5 5 0-5-5-5z' stroke='%235EEAD4' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='90' cy='85' r='4' fill='%23FDBA74' fill-opacity='0.7'/%3E%3Ccircle cx='160' cy='95' r='3.5' fill='%2393C5FD' fill-opacity='0.8'/%3E%3Ccircle cx='18' cy='90' r='3.5' fill='%23C4B5FD' fill-opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"),
-            linear-gradient(135deg, #E0F2FE 0%, #FEF9C3 50%, #FCE7F3 100%);
-        font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-    }
+# Import API Perekam Suara Android (Plyer)
+try:
+    from plyer import audio
+    HAS_PLYER_AUDIO = True
+except Exception:
+    HAS_PLYER_AUDIO = False
 
-    .main {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-    }
-
-    [data-testid="stMainBlockContainer"], .block-container {
-        max-width: 440px !important;
-        width: 92% !important;
-        height: auto !important;
-        min-height: fit-content !important;
-        background-color: #FFFDF7 !important;
-        background-image: radial-gradient(#FDE68A 1.2px, transparent 1.2px), radial-gradient(#BAE6FD 1.2px, #FFFDF7 1.2px);
-        background-size: 36px 36px;
-        background-position: 0 0, 18px 18px;
-        margin: 1.5rem auto !important;
-        padding: 1.8rem 1.4rem 2rem 1.4rem !important;
-        border-radius: 36px !important;
-        border: 7px solid #FFFFFF !important;
-        box-shadow: 0 18px 40px rgba(56, 189, 248, 0.22), 0 0 0 3px #BAE6FD !important;
-    }
-
-    h1, h2, h3 {
-        font-family: 'Arial Rounded MT Bold', 'Quicksand', 'Segoe UI', sans-serif !important;
-        font-weight: 800 !important;
-        color: #0369A1 !important;
-        letter-spacing: 0.3px;
-    }
-
-    p, div, span, label {
-        font-family: 'Segoe UI', 'Roboto', Arial, sans-serif !important;
-        color: #334155;
-    }
-
-    .step-indicator {
-        text-align: center;
-        font-size: 0.82rem;
-        font-weight: 800;
-        color: #9A3412 !important;
-        background: linear-gradient(90deg, #FEF08A 0%, #FED7AA 100%);
-        padding: 0.35rem 1rem;
-        border-radius: 999px;
-        border: 2px solid #FDE047;
-        display: inline-block;
-        margin-bottom: 0.6rem;
-        box-shadow: 0 3px 8px rgba(250, 204, 21, 0.25);
-    }
-
-    .offline-badge {
-        display: inline-block;
-        background-color: #DCFCE7;
-        color: #166534 !important;
-        border: 1.5px solid #86EFAC;
-        font-size: 0.72rem;
-        font-weight: 800;
-        padding: 0.2rem 0.65rem;
-        border-radius: 999px;
-        margin-bottom: 0.4rem;
-    }
-
-    .mobile-card {
-        background-color: rgba(255, 255, 255, 0.95);
-        border-radius: 24px;
-        padding: 1.15rem;
-        margin-bottom: 0.85rem;
-        border: 2.5px solid #F1F5F9;
-        box-shadow: 0 6px 14px rgba(148, 163, 184, 0.1);
-    }
-
-    .card-blue { background-color: #F0F9FF !important; border-color: #7DD3FC !important; }
-    .card-peach { background-color: #FFF7ED !important; border-color: #FDBA74 !important; }
-    .card-mint { background-color: #ECFDF5 !important; border-color: #6EE7B7 !important; }
-    .card-pink { background-color: #FFF1F2 !important; border-color: #FDA4AF !important; }
-    .card-yellow { background-color: #FEFCE8 !important; border-color: #FDE047 !important; }
-
-    .stButton>button, .stDownloadButton>button {
-        width: 100%;
-        border-radius: 20px !important;
-        padding: 0.75rem 1rem !important;
-        font-weight: 700 !important;
-        font-size: 1.0rem !important;
-        border: 2px solid #FFFFFF !important;
-        background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%) !important;
-        color: white !important;
-        box-shadow: 0 6px 16px rgba(56, 189, 248, 0.35);
-        transition: all 0.2s ease;
-    }
-    .stButton>button:hover, .stDownloadButton>button:hover {
-        transform: translateY(-2px) scale(1.02);
-        background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%) !important;
-    }
-    .stButton>button p, .stDownloadButton>button p {
-        color: white !important;
-    }
-
-    .action-btn {
-        display: block;
-        width: 100%;
-        text-align: center;
-        padding: 0.72rem 1rem;
-        border-radius: 18px;
-        color: #FFFFFF !important;
-        font-weight: 700;
-        font-size: 0.9rem;
-        text-decoration: none;
-        border: 2px solid #FFFFFF;
-        margin-top: 0.45rem;
-        margin-bottom: 0.45rem;
-        box-sizing: border-box;
-    }
-    .btn-green { background: linear-gradient(135deg, #10B981 0%, #059669 100%); }
-    .btn-blue { background: linear-gradient(135deg, #0284C7 0%, #2563EB 100%); }
-    .btn-red { background: linear-gradient(135deg, #F43F5E 0%, #E11D48 100%); }
-    .btn-amber { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); }
-</style>
-""", unsafe_allow_html=True)
+# Warna Tema Pastel RespiKidd
+Window.clearcolor = get_color_from_hex("#E0F7FA")
 
 # ==============================================================================
-# DATABASE OFFLINE KONTAK MEDIS NASIONAL, PUSKESMAS & RS RUJUKAN SELURUH INDONESIA
+# DATABASE OFFLINE KONTAK MEDIS NASIONAL & RS RUJUKAN SELURUH INDONESIA
 # ==============================================================================
 OFFLINE_FASKES_DB = {
-    "Pilih Wilayah Rujukan (Seluruh Indonesia)...": [],
-    "🌐 Layanan Kesehatan & Darurat Nasional (24 Jam)": [
-        {"nama": "PSC 119 Kemenkes RI (Ambulans & Gawat Darurat)", "telp": "119", "ket": "Bebas Pulsa / Layanan Darurat Nasional"},
-        {"nama": "Panggilan Darurat Terpadu Nasional", "telp": "112", "ket": "Aktif Tanpa Kuota / Sinyal Darurat"},
-        {"nama": "Halo Kemenkes RI (Informasi Puskesmas & Rujukan)", "telp": "1500567", "ket": "Pusat Layanan Informasi Kesehatan RI"},
-        {"nama": "Palang Merah Indonesia (PMI Pusat)", "telp": "0217992325", "ket": "Layanan Darurat & Kemanusiaan"},
-        {"nama": "RSAB Harapan Kita (Rujukan Nasional Anak)", "telp": "0215668284", "ket": "Spesialis Anak & Pernapasan Anak Nasional"},
+    "Layanan Darurat Nasional (24 Jam)": [
+        ("PSC 119 Kemenkes RI", "119", "Ambulans & Gawat Darurat Nasional"),
+        ("Panggilan Darurat Terpadu", "112", "Aktif Tanpa Kuota / Sinyal Darurat"),
+        ("Halo Kemenkes RI", "1500567", "Pusat Informasi Kesehatan RI"),
+        ("RSAB Harapan Kita Jakarta", "0215668284", "Rujukan Nasional Pernapasan Anak"),
     ],
-    "Aceh & Sumatera Utara (Banda Aceh, Medan, Nias, Simeulue)": [
-        {"nama": "RSUD Dr. Zainoel Abidin Banda Aceh", "telp": "065134565", "ket": "RS Rujukan Utama Aceh"},
-        {"nama": "RSUD Simeulue (Kepulauan 3T Aceh)", "telp": "065021018", "ket": "IGD & Poli Anak Simeulue"},
-        {"nama": "RSUP H. Adam Malik Medan", "telp": "0618360381", "ket": "RS Rujukan Utama Sumatera Utara"},
-        {"nama": "RSUD dr. M. Thomsen Nias (Gunungsitoli)", "telp": "063921018", "ket": "RS Rujukan Kepulauan Nias (3T)"},
-        {"nama": "Puskesmas Teluk Dalam (Nias Selatan)", "telp": "063021018", "ket": "Layanan Kesehatan Dasar Nias Selatan"},
+    "Jawa Barat & DKI Jakarta": [
+        ("RSCM Jakarta", "0211500135", "RS Rujukan Nasional & Anak"),
+        ("RSUP Dr. Hasan Sadikin Bandung", "0222034953", "RS Rujukan Utama Jawa Barat"),
+        ("RSUD Bandung Kiwari", "0225200505", "Khusus Ibu & Anak Kota Bandung"),
+        ("Puskesmas Cimenyan", "0222503619", "Layanan Kesehatan Kec. Cimenyan"),
     ],
-    "Sumatera Barat, Riau & Kep. Riau (Padang, Mentawai, Pekanbaru, Natuna)": [
-        {"nama": "RSUP Dr. M. Djamil Padang", "telp": "075132371", "ket": "RS Rujukan Utama Sumatera Barat"},
-        {"nama": "RSUD Kabupaten Kepulauan Mentawai (Tuapejat)", "telp": "0759320018", "ket": "RS Rujukan Kepulauan Mentawai (3T)"},
-        {"nama": "RSUD Arifin Achmad Pekanbaru", "telp": "076121618", "ket": "RS Rujukan Utama Riau"},
-        {"nama": "RSUD Kabupaten Natuna (Ranai)", "telp": "077331018", "ket": "RS Perbatasan Kepulauan Natuna (3T)"},
-        {"nama": "RSUD Tarempa (Kepulauan Anambas)", "telp": "077231018", "ket": "RS Perbatasan Anambas (3T)"},
+    "Aceh & Sumatera Utara": [
+        ("RSUD Dr. Zainoel Abidin", "065134565", "RS Rujukan Utama Aceh"),
+        ("RSUD Simeulue (3T)", "065021018", "IGD & Poli Anak Simeulue"),
+        ("RSUP H. Adam Malik Medan", "0618360381", "RS Rujukan Utama Sumut"),
+        ("RSUD dr. M. Thomsen Nias", "063921018", "Rujukan Kepulauan Nias (3T)"),
     ],
-    "Jambi, Sumsel, Bengkulu, Babel & Lampung": [
-        {"nama": "RSUD Raden Mattaher Jambi", "telp": "074161692", "ket": "RS Rujukan Utama Jambi"},
-        {"nama": "RSUP Dr. Mohammad Hoesin Palembang", "telp": "0711354088", "ket": "RS Rujukan Utama Sumatera Selatan"},
-        {"nama": "RSUD Dr. M. Yunus Bengkulu", "telp": "073652004", "ket": "RS Rujukan Utama Bengkulu"},
-        {"nama": "RSUD Dr. (H.C.) Ir. Soekarno Bangka Belitung", "telp": "07179106756", "ket": "RS Rujukan Provinsi Babel"},
-        {"nama": "RSUD Dr. H. Abdul Moeloek Bandar Lampung", "telp": "0721703312", "ket": "RS Rujukan Utama Lampung"},
+    "Sumatera Barat, Riau & Kepri": [
+        ("RSUP Dr. M. Djamil Padang", "075132371", "RS Rujukan Utama Sumbar"),
+        ("RSUD Mentawai (Tuapejat)", "0759320018", "Rujukan Kepulauan Mentawai (3T)"),
+        ("RSUD Arifin Achmad Pekanbaru", "076121618", "RS Rujukan Utama Riau"),
+        ("RSUD Kabupaten Natuna", "077331018", "RS Perbatasan Natuna (3T)"),
     ],
-    "DKI Jakarta, Jawa Barat & Banten (Bandung, Cimenyan, Bogor, Serang)": [
-        {"nama": "RSUPN Dr. Cipto Mangunkusumo (RSCM) Jakarta", "telp": "0211500135", "ket": "RS Rujukan Nasional & Anak"},
-        {"nama": "RSUP Dr. Hasan Sadikin (RSHS) Bandung", "telp": "0222034953", "ket": "RS Rujukan Utama Jawa Barat"},
-        {"nama": "RSUD Bandung Kiwari (Khusus Ibu & Anak)", "telp": "0225200505", "ket": "IGD & Poli Spesialis Anak Kota Bandung"},
-        {"nama": "Puskesmas Cimenyan (Kab. Bandung)", "telp": "0222503619", "ket": "Layanan Kesehatan Kec. Cimenyan"},
-        {"nama": "RSUD Dr. Drajat Prawiranegara Serang", "telp": "0254200528", "ket": "RS Rujukan Utama Banten"},
+    "Jawa Tengah, DIY & Jawa Timur": [
+        ("RSUP Dr. Kariadi Semarang", "0248413476", "RS Rujukan Utama Jateng"),
+        ("RSUP Dr. Sardjito Yogyakarta", "0274587333", "RS Rujukan Utama DIY"),
+        ("RSUD Dr. Soetomo Surabaya", "0315501078", "RS Rujukan Utama Jatim"),
+        ("RSUD Moh. Anwar Sumenep", "0328662494", "Rujukan Kepulauan Madura"),
     ],
-    "Jawa Tengah, DI Yogyakarta & Jawa Timur (Semarang, Solo, Jogja, Surabaya)": [
-        {"nama": "RSUP Dr. Kariadi Semarang", "telp": "0248413476", "ket": "RS Rujukan Utama Jawa Tengah"},
-        {"nama": "RSUP Dr. Sardjito Yogyakarta", "telp": "0274587333", "ket": "RS Rujukan Utama DIY"},
-        {"nama": "RSUD Dr. Soetomo Surabaya", "telp": "0315501078", "ket": "RS Rujukan Utama Jawa Timur"},
-        {"nama": "RSUD Dr. Saiful Anwar Malang", "telp": "0341362101", "ket": "RS Rujukan Jawa Timur Selatan"},
-        {"nama": "RSUD Moh. Anwar Sumenep (Kepulauan Madura)", "telp": "0328662494", "ket": "Rujukan Wilayah Kepulauan Sumenep"},
+    "Bali, NTB & NTT": [
+        ("RSUP Prof. Ngoerah Denpasar", "0361227911", "RS Rujukan Utama Bali"),
+        ("RSUD Provinsi NTB Mataram", "03707502424", "RS Rujukan Utama NTB"),
+        ("RSUD Prof. W.Z. Johannes Kupang", "0380833614", "RS Rujukan Utama NTT"),
+        ("RSUD Umbu Rara Meha Sumba", "038761302", "RS Rujukan Pulau Sumba (3T)"),
     ],
-    "Bali, NTB & NTT (Denpasar, Mataram, Bima, Kupang, Sumba, Flores, Alor)": [
-        {"nama": "RSUP Prof. Dr. I.G.N.G. Ngoerah (Sanglah) Denpasar", "telp": "0361227911", "ket": "RS Rujukan Utama Bali"},
-        {"nama": "RSUD Provinsi NTB (Mataram)", "telp": "03707502424", "ket": "RS Rujukan Utama NTB"},
-        {"nama": "RSUD Bima (Pulau Sumbawa)", "telp": "037443142", "ket": "IGD & Anak Wilayah Bima/Dompu"},
-        {"nama": "RSUD Prof. Dr. W.Z. Johannes Kupang", "telp": "0380833614", "ket": "RS Rujukan Utama NTT"},
-        {"nama": "RSUD Umbu Rara Meha Waingapu (Sumba Timur)", "telp": "038761302", "ket": "RS Rujukan Pulau Sumba (3T)"},
-        {"nama": "RSUD Kalabahi (Kab. Alor)", "telp": "038621008", "ket": "RS Kepulauan Alor (3T)"},
-        {"nama": "RSUD Ba'a (Kab. Rote Ndao)", "telp": "0380871014", "ket": "RS Wilayah Terselatan RI (3T)"},
+    "Kalimantan": [
+        ("RSUD Dr. Soedarso Pontianak", "0561737701", "RS Rujukan Utama Kalbar"),
+        ("RSUD Putussibau (Kapuas Hulu)", "056721018", "Perbatasan Kalbar (3T)"),
+        ("RSUD Ulin Banjarmasin", "05113252180", "RS Rujukan Utama Kalsel"),
+        ("RSUD Kabupaten Nunukan", "055621118", "RS Perbatasan Kaltara (3T)"),
     ],
-    "Kalimantan (Pontianak, Kapuas Hulu, Banjarmasin, Samarinda, Nunukan, Malinau)": [
-        {"nama": "RSUD Dr. Soedarso Pontianak", "telp": "0561737701", "ket": "RS Rujukan Utama Kalbar"},
-        {"nama": "RSUD dr. Achmad Diponegoro Putussibau", "telp": "056721018", "ket": "Kapuas Hulu / Perbatasan Kalbar (3T)"},
-        {"nama": "RSUD Ulin Banjarmasin", "telp": "05113252180", "ket": "RS Rujukan Utama Kalsel"},
-        {"nama": "RSUD Dr. Doris Sylvanus Palangka Raya", "telp": "05363224695", "ket": "RS Rujukan Utama Kalteng"},
-        {"nama": "RSUD Abdul Wahab Sjahranie Samarinda", "telp": "0541738118", "ket": "RS Rujukan Utama Kaltim"},
-        {"nama": "RSUD Kabupaten Nunukan (Perbatasan)", "telp": "055621118", "ket": "RS Perbatasan Kaltara (3T)"},
-        {"nama": "RSUD Kabupaten Malinau", "telp": "055321118", "ket": "RS Pedalaman Kaltara (3T)"},
+    "Sulawesi, Maluku & Papua": [
+        ("RSUP Dr. Wahidin Makassar", "0411584677", "Rujukan Utama Indonesia Timur"),
+        ("RSUP Prof. R.D. Kandou Manado", "0431838305", "RS Rujukan Utama Sulut"),
+        ("RSUD Dr. M. Haulussy Ambon", "0911344871", "RS Rujukan Utama Maluku"),
+        ("RSUD Dok II Jayapura", "0967533616", "RS Rujukan Utama Papua"),
+        ("RSUD Wamena (Jayawijaya)", "096931066", "Papua Pegunungan (3T)"),
     ],
-    "Sulawesi (Makassar, Manado, Talaud, Sangihe, Palu, Kendari, Wakatobi)": [
-        {"nama": "RSUP Dr. Wahidin Sudirohusodo Makassar", "telp": "0411584677", "ket": "RS Rujukan Utama Indonesia Timur"},
-        {"nama": "RSUP Prof. Dr. R.D. Kandou Manado", "telp": "0431838305", "ket": "RS Rujukan Utama Sulut"},
-        {"nama": "RSUD Mala Melonguane (Kep. Talaud)", "telp": "0433311018", "ket": "RS Perbatasan Utara RI (3T)"},
-        {"nama": "RSUD Liun Kendage Tahuna (Sangihe)", "telp": "043221018", "ket": "RS Kepulauan Sangihe (3T)"},
-        {"nama": "RSUD Undata Palu", "telp": "04514908020", "ket": "RS Rujukan Utama Sulteng"},
-        {"nama": "RSUD Bahteramas Kendari", "telp": "04013195611", "ket": "RS Rujukan Utama Sultra"},
-        {"nama": "RSUD Kabupaten Wakatobi", "telp": "040421018", "ket": "RS Kepulauan Wakatobi (3T)"},
-    ],
-    "Maluku & Maluku Utara (Ambon, Tual, Saumlaki, Ternate, Halmahera)": [
-        {"nama": "RSUD Dr. M. Haulussy Ambon", "telp": "0911344871", "ket": "RS Rujukan Utama Maluku"},
-        {"nama": "RSUD Karel Sadsuitubun Tual (Maluku Tenggara)", "telp": "091621023", "ket": "RS Kepulauan Kei / Tual (3T)"},
-        {"nama": "RSUD Dr. P.P. Magretti Saumlaki (Tanimbar)", "telp": "091821018", "ket": "RS Kepulauan Tanimbar (3T)"},
-        {"nama": "RSUD Dr. H. Chasan Boesoirie Ternate", "telp": "09213121281", "ket": "RS Rujukan Utama Maluku Utara"},
-    ],
-    "Tanah Papua (Jayapura, Wamena, Asmat, Timika, Merauke, Sorong, Manokwari)": [
-        {"nama": "RSUD Dok II Jayapura", "telp": "0967533616", "ket": "RS Rujukan Utama Papua"},
-        {"nama": "RSUD Wamena (Kab. Jayawijaya)", "telp": "096931066", "ket": "RS Rujukan Papua Pegunungan (3T)"},
-        {"nama": "RSUD Agats (Kab. Asmat)", "telp": "090231018", "ket": "RS Wilayah Pedalaman Asmat (3T)"},
-        {"nama": "RSUD Mimika (Timika)", "telp": "0901322222", "ket": "RS Rujukan Papua Tengah"},
-        {"nama": "RSUD Merauke", "telp": "0971321124", "ket": "RS Rujukan Papua Selatan"},
-        {"nama": "RSUD Sele Be Solu Kota Sorong", "telp": "0951321850", "ket": "RS Rujukan Papua Barat Daya"},
-        {"nama": "RSUD Manokwari", "telp": "0986211440", "ket": "RS Rujukan Papua Barat"},
-    ]
 }
 
 # ==============================================================================
-# DOODLE & ILUSTRASI KUCING DOKTER PASTEL (100% VECTOR SVG OFFLINE)
+# PIPELINE PEMROSESAN AUDIO & TFLITE MURNI OFFLINE (TANPA LIBROSA)
 # ==============================================================================
-TOP_DOODLE_SVG = """
-<div style="text-align:center; margin-bottom:-0.3rem;">
-<svg width="240" height="42" viewBox="0 0 240 42" xmlns="http://www.w3.org/2000/svg">
-  <path d="M28 10l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z" fill="#FACC15"/>
-  <path d="M58 32c-4.5 0-8-3.5-8-8 0-3.8 2.7-7 6.3-7.8 1.2-4.2 5.1-7.2 9.7-7.2 5.6 0 10.2 4.5 10.2 10.1 0 .4 0 .8-.1 1.2 3 1 5.3 3.8 5.3 7.2 0 4.2-3.4 7.5-7.6 7.5H58z" fill="#BAE6FD"/>
-  <circle cx="63" cy="24" r="1.4" fill="#0369A1"/>
-  <circle cx="71" cy="24" r="1.4" fill="#0369A1"/>
-  <path d="M65.5 26.5q1.5 2 3 0" stroke="#0369A1" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-  <path d="M124 14c-2.5-3.2-7.5-2.5-9 1-1.5-3.5-6.5-4.2-9-1-2.5 3.2-.8 7.8 9 12.8 9.8-5 11.5-9.6 9-12.8z" fill="#F472B6"/>
-  <path d="M162 32c-4.5 0-8-3.5-8-8 0-3.8 2.7-7 6.3-7.8 1.2-4.2 5.1-7.2 9.7-7.2 5.6 0 10.2 4.5 10.2 10.1 0 .4 0 .8-.1 1.2 3 1 5.3 3.8 5.3 7.2 0 4.2-3.4 7.5-7.6 7.5h-15.8z" fill="#FBCFE8"/>
-  <circle cx="167" cy="24" r="1.4" fill="#9D174D"/>
-  <circle cx="175" cy="24" r="1.4" fill="#9D174D"/>
-  <path d="M169.5 26.5q1.5 2 3 0" stroke="#9D174D" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-  <path d="M212 10l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z" fill="#4ADE80"/>
-</svg>
-</div>
-"""
+def extract_mel_spectrogram_offline(wav_path, target_sr=22050, n_mels=128):
+    sr, data = wavfile.read(wav_path)
 
-# Kucing Dokter Oranye Pastel (Utama & Panduan)
-CAT_DOCTOR_SVG = """
-<div style="text-align:center; margin: 0.2rem 0;">
-<svg width="145" height="145" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
-  <!-- Bintang & Hati Dekorasi -->
-  <path d="M26 52l3 6 6.5 1-4.7 4.5 1.1 6.5-5.9-3.1-5.9 3.1 1.1-6.5-4.7-4.5 6.5-1z" fill="#FDE047"/>
-  <path d="M194 48c-2.5-3.2-7.5-2.5-9 1-1.5-3.5-6.5-4.2-9-1-2.5 3.2-.8 7.8 9 12.8 9.8-5 11.5-9.6 9-12.8z" fill="#F9A8D4"/>
-  <!-- Ekor Kucing -->
-  <path d="M152 175 Q188 165 182 135 Q178 122 168 128 Q162 132 166 144 Q168 156 148 162 Z" fill="#FB923C" stroke="#7C2D12" stroke-width="3"/>
-  <!-- Jas Dokter Putih -->
-  <path d="M62 142 Q110 132 158 142 L166 196 Q110 204 54 196 Z" fill="#FFFFFF" stroke="#334155" stroke-width="3"/>
-  <path d="M96 140 L110 170 L124 140 Z" fill="#BAE6FD"/>
-  <line x1="110" y1="168" x2="110" y2="198" stroke="#94A3B8" stroke-width="2.5"/>
-  <!-- Stetoskop Biru Pastel -->
-  <path d="M84 140 Q82 174 110 174 Q138 174 136 140" fill="none" stroke="#0284C7" stroke-width="4.5" stroke-linecap="round"/>
-  <circle cx="136" cy="172" r="9" fill="#E0F2FE" stroke="#0284C7" stroke-width="3"/>
-  <circle cx="136" cy="172" r="4" fill="#38BDF8"/>
-  <!-- Tangan Melambai -->
-  <ellipse cx="48" cy="136" rx="14" ry="12" fill="#FFF7ED" stroke="#7C2D12" stroke-width="3"/>
-  <circle cx="48" cy="137" r="5" fill="#FDA4AF"/>
-  <circle cx="42" cy="130" r="2.5" fill="#FDA4AF"/>
-  <circle cx="48" cy="128" r="2.5" fill="#FDA4AF"/>
-  <circle cx="54" cy="130" r="2.5" fill="#FDA4AF"/>
-  <!-- Telinga Kucing -->
-  <path d="M56 82 L48 34 L90 56 Z" fill="#FB923C" stroke="#7C2D12" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M61 74 L56 45 L82 60 Z" fill="#FBCFE8"/>
-  <path d="M164 82 L172 34 L130 56 Z" fill="#FB923C" stroke="#7C2D12" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M159 74 L164 45 L138 60 Z" fill="#FBCFE8"/>
-  <!-- Kepala Kucing -->
-  <ellipse cx="110" cy="98" rx="60" ry="50" fill="#FB923C" stroke="#7C2D12" stroke-width="3"/>
-  <!-- Area Putih Wajah -->
-  <path d="M62 108 Q110 78 158 108 Q154 144 110 146 Q66 144 62 108 Z" fill="#FFFDF9"/>
-  <!-- Belang Dahi -->
-  <path d="M100 50 L104 65 L110 52 L116 65 L120 50" fill="none" stroke="#EA580C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Mata Senyum -->
-  <path d="M78 96 Q87 86 96 96" fill="none" stroke="#334155" stroke-width="3.5" stroke-linecap="round"/>
-  <path d="M124 96 Q133 86 142 96" fill="none" stroke="#334155" stroke-width="3.5" stroke-linecap="round"/>
-  <!-- Pipi Pink -->
-  <ellipse cx="75" cy="110" rx="10" ry="5.5" fill="#FDA4AF" opacity="0.85"/>
-  <ellipse cx="145" cy="110" rx="10" ry="5.5" fill="#FDA4AF" opacity="0.85"/>
-  <!-- Hidung & Mulut -->
-  <polygon points="105,108 115,108 110,114" fill="#F43F5E"/>
-  <path d="M98 119 Q104 126 110 118 Q116 126 122 119" fill="none" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
-  <!-- Kumis -->
-  <line x1="42" y1="102" x2="62" y2="105" stroke="#7C2D12" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="40" y1="114" x2="61" y2="113" stroke="#7C2D12" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="158" y1="105" x2="178" y2="102" stroke="#7C2D12" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="159" y1="113" x2="180" y2="114" stroke="#7C2D12" stroke-width="2.5" stroke-linecap="round"/>
-</svg>
-</div>
-"""
+    # Ubah stereo ke mono jika perlu
+    if data.ndim > 1:
+        data = np.mean(data, axis=1)
 
-# Kucing Pintar Berkacamata (Halaman Edukasi)
-CAT_SMART_SVG = """
-<div style="text-align:center; margin: 0.2rem 0;">
-<svg width="120" height="120" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
-  <path d="M188 45l3 6 6.5 1-4.7 4.5 1.1 6.5-5.9-3.1-5.9 3.1 1.1-6.5-4.7-4.5 6.5-1z" fill="#6EE7B7"/>
-  <!-- Telinga -->
-  <path d="M56 85 L48 36 L90 58 Z" fill="#FDBA74" stroke="#7C2D12" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M62 77 L57 48 L82 62 Z" fill="#FBCFE8"/>
-  <path d="M164 85 L172 36 L130 58 Z" fill="#FDBA74" stroke="#7C2D12" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M158 77 L163 48 L138 62 Z" fill="#FBCFE8"/>
-  <!-- Kepala -->
-  <ellipse cx="110" cy="105" rx="60" ry="52" fill="#FED7AA" stroke="#7C2D12" stroke-width="3"/>
-  <path d="M64 115 Q110 86 156 115 Q152 152 110 154 Q68 152 64 115 Z" fill="#FFFDF9"/>
-  <!-- Kacamata Bulat Biru -->
-  <circle cx="86" cy="102" r="18" fill="#E0F2FE" fill-opacity="0.45" stroke="#0284C7" stroke-width="3.5"/>
-  <circle cx="134" cy="102" r="18" fill="#E0F2FE" fill-opacity="0.45" stroke="#0284C7" stroke-width="3.5"/>
-  <line x1="104" y1="102" x2="116" y2="102" stroke="#0284C7" stroke-width="3.5"/>
-  <!-- Mata -->
-  <circle cx="86" cy="102" r="5.5" fill="#1E293B"/>
-  <circle cx="88" cy="100" r="2" fill="#FFFFFF"/>
-  <circle cx="134" cy="102" r="5.5" fill="#1E293B"/>
-  <circle cx="136" cy="100" r="2" fill="#FFFFFF"/>
-  <!-- Pipi, Hidung, Senyum -->
-  <ellipse cx="72" cy="120" rx="9" ry="5" fill="#FDA4AF" opacity="0.8"/>
-  <ellipse cx="148" cy="120" rx="9" ry="5" fill="#FDA4AF" opacity="0.8"/>
-  <polygon points="105,116 115,116 110,122" fill="#F43F5E"/>
-  <path d="M100 127 Q110 135 120 127" fill="none" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
-  <!-- Syal Biru Pastel -->
-  <path d="M64 156 Q110 174 156 156 L150 182 Q110 194 70 182 Z" fill="#38BDF8" stroke="#0369A1" stroke-width="2.5"/>
-</svg>
-</div>
-"""
+    # Konversi ke float32 dalam rentang [-1, 1]
+    if data.dtype == np.int16:
+        y = data.astype(np.float32) / 32768.0
+    elif data.dtype == np.int32:
+        y = data.astype(np.float32) / 2147483648.0
+    else:
+        y = data.astype(np.float32)
 
-# ==============================================================================
-# STATE & MODEL PIPELINE (100% OFFLINE)
-# ==============================================================================
-if "page" not in st.session_state:
-    st.session_state.page = 1
-if "result_data" not in st.session_state:
-    st.session_state.result_data = None
-if "custom_faskes_list" not in st.session_state:
-    st.session_state.custom_faskes_list = []
+    # Resample ke 22050 Hz
+    if sr != target_sr:
+        num_samples = int(len(y) * float(target_sr) / sr)
+        y = signal.resample(y, num_samples)
+        sr = target_sr
 
-def go_to(page_num):
-    st.session_state.page = page_num
+    # Potong maksimal 3 detik
+    max_samples = target_sr * 3
+    if len(y) > max_samples:
+        y = y[:max_samples]
 
-@st.cache_resource
-def load_respikidd_model():
-    return tf.keras.models.load_model('respikidd_model.keras')
-
-def preprocess_and_extract_mel(audio_file, use_noise_reduce=False):
-    # Muat audio 3 detik pada sample rate standar 22050 Hz
-    y, sr = librosa.load(audio_file, sr=22050, duration=3.0)
-
-    # Validasi volume agar tidak memproses file kosong/hening
-    rms = np.mean(librosa.feature.rms(y=y))
+    # Cek RMS (validasi suara hening)
+    rms = np.sqrt(np.mean(y ** 2))
     if rms < 0.004:
-        return None, None, "Suara terlalu pelan atau hening. Dekatkan HP 15–20 cm saat anak batuk dan coba lagi."
+        return None, "Suara terlalu pelan atau hening. Dekatkan HP 15-20 cm saat anak batuk."
 
-    # Denoising ringan (opsional untuk ruangan ramai) agar frekuensi rendah wheezing tidak hilang
-    if use_noise_reduce:
-        y = nr.reduce_noise(y=y, sr=sr, prop_decrease=0.55, stationary=True)
+    # Normalisasi amplitudo
+    peak = np.max(np.abs(y))
+    if peak > 0:
+        y = y / peak
 
-    # Potong bagian hening di awal dan akhir rekaman
-    y_trim, _ = librosa.effects.trim(y, top_db=28)
-    if len(y_trim) > int(0.35 * sr):
-        y = y_trim
+    # Hitung STFT Spectrogram menggunakan SciPy
+    n_fft = 2048
+    hop_length = 512
+    _, _, Zxx = signal.stft(y, fs=sr, nperseg=n_fft, noverlap=n_fft - hop_length)
+    power_spec = np.abs(Zxx) ** 2
 
-    # Normalisasi amplitudo sinyal audio
-    y_norm = librosa.util.normalize(y)
+    # Buat Mel Filterbank
+    f_min, f_max = 0.0, sr / 2.0
+    mel_min = 2595.0 * np.log10(1.0 + f_min / 700.0)
+    mel_max = 2595.0 * np.log10(1.0 + f_max / 700.0)
+    mel_points = np.linspace(mel_min, mel_max, n_mels + 2)
+    hz_points = 700.0 * (10.0 ** (mel_points / 2595.0) - 1.0)
+    bins = np.floor((n_fft + 1) * hz_points / sr).astype(int)
 
-    # Ekstraksi Mel-Spectrogram (128x128)
-    mel_spec = librosa.feature.melspectrogram(y=y_norm, sr=sr, n_mels=128)
-    mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
+    fbank = np.zeros((n_mels, int(np.floor(n_fft / 2 + 1))))
+    for m in range(1, n_mels + 1):
+        f_m_minus, f_m, f_m_plus = bins[m - 1], bins[m], bins[m + 1]
+        for k in range(f_m_minus, f_m):
+            if f_m != f_m_minus:
+                fbank[m - 1, k] = (k - f_m_minus) / (f_m - f_m_minus)
+        for k in range(f_m, f_m_plus):
+            if f_m_plus != f_m:
+                fbank[m - 1, k] = (f_m_plus - k) / (f_m_plus - f_m)
 
-    # Min-max normalization yang stabil terhadap variasi volume mikrofon HP
-    mel_min, mel_max = mel_spec_db.min(), mel_spec_db.max()
-    if mel_max - mel_min > 1e-6:
-        mel_norm = (mel_spec_db - mel_min) / (mel_max - mel_min)
+    mel_spec = np.dot(fbank, power_spec)
+    mel_spec_db = 10.0 * np.log10(np.maximum(mel_spec, 1e-10))
+    mel_spec_db -= np.max(mel_spec_db)
+
+    # Normalisasi Min-Max
+    mel_min_val, mel_max_val = mel_spec_db.min(), mel_spec_db.max()
+    if mel_max_val - mel_min_val > 1e-6:
+        mel_norm = (mel_spec_db - mel_min_val) / (mel_max_val - mel_min_val)
     else:
         mel_norm = np.clip((mel_spec_db + 80.0) / 80.0, 0.0, 1.0)
 
-    mel_resized = tf.image.resize(mel_norm[..., np.newaxis], (128, 128)).numpy()
-    img_input = np.expand_dims(mel_resized, axis=0)
+    # Resize ke (128, 128) menggunakan SciPy zoom
+    zoom_h = 128.0 / mel_norm.shape[0]
+    zoom_w = 128.0 / mel_norm.shape[1]
+    mel_resized = signal.zoom(mel_norm, (zoom_h, zoom_w), order=1)
+    mel_resized = mel_resized[:128, :128].astype(np.float32)
 
-    return img_input, (mel_spec_db, sr), None
+    img_input = np.expand_dims(mel_resized[..., np.newaxis], axis=0)
+    return img_input, None
+
+
+def predict_with_tflite(img_input, model_path="respikidd_model.tflite"):
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"File model '{model_path}' tidak ditemukan di folder aplikasi.")
+    interpreter = tflite.Interpreter(model_path=model_path)
+    interpreter.allocate_tensors()
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+
+    interpreter.set_tensor(input_details[0]["index"], img_input)
+    interpreter.invoke()
+    output_data = interpreter.get_tensor(output_details[0]["index"])
+    return float(output_data[0][0])
+
+
+# ==============================================================================
+# KOMPONEN UI KARTU & TOMBOL PASTEL KIVY
+# ==============================================================================
+class PastelCard(BoxLayout):
+    def __init__(self, bg_hex="#FFFFFF", **kwargs):
+        super().__init__(orientation="vertical", padding=16, spacing=8, size_hint_y=None, **kwargs)
+        self.bind(minimum_height=self.setter("height"))
+        with self.canvas.before:
+            Color(*get_color_from_hex(bg_hex))
+            self.rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[20])
+        self.bind(pos=self._update_rect, size=self._update_rect)
+
+    def _update_rect(self, *args):
+        self.rect.pos = self.pos
+        self.rect.size = self.size
+
+
+def make_label(text, font_size=15, bold=False, color_hex="#334155", halign="left"):
+    lbl = Label(
+        text=text,
+        font_size=f"{font_size}sp",
+        bold=bold,
+        color=get_color_from_hex(color_hex),
+        halign=halign,
+        valign="middle",
+        size_hint_y=None,
+    )
+    lbl.bind(width=lambda instance, value: setattr(instance, "text_size", (value, None)))
+    lbl.bind(texture_size=lambda instance, value: setattr(instance, "height", value[1] + 6))
+    return lbl
+
+
+def make_button(text, bg_hex="#0284C7", on_press=None):
+    btn = Button(
+        text=text,
+        font_size="16sp",
+        bold=True,
+        size_hint_y=None,
+        height=50,
+        background_normal="",
+        background_color=get_color_from_hex(bg_hex),
+        color=(1, 1, 1, 1),
+    )
+    if on_press:
+        btn.bind(on_press=on_press)
+    return btn
 
 
 # ==============================================================================
-# LAYAR 1: SPLASH & SAMBUTAN MASKOT KUCING
+# LAYAR 1: SAMBUTAN & MODE 100% OFFLINE
 # ==============================================================================
-if st.session_state.page == 1:
-    st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Selamat Datang • 1/5</span><br><span class='offline-badge'>100% Mode Offline Siap Pakai</span></div>", unsafe_allow_html=True)
-    
-    st.markdown(CAT_DOCTOR_SVG, unsafe_allow_html=True)
+class WelcomeScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        root = BoxLayout(orientation="vertical", padding=20, spacing=14)
 
-    st.markdown("""
-    <div class="mobile-card card-yellow" style="text-align:center; margin-top:0.3rem;">
-        <h2 style="color:#0369A1; margin:0 0 0.4rem 0; font-size:1.5rem;">Halo Ayah & Bunda!</h2>
-        <p style="font-size:0.95rem; color:#475569; line-height:1.5; margin:0;">
-            <b>RespiKidd</b> bekerja <b>tanpa koneksi internet</b> untuk skrining dini gejala bronkitis pada batita lewat suara batuk, dilengkapi database kontak Puskesmas & RS rujukan seluruh Indonesia.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+        badge = make_label("100% MODE OFFLINE SIAP PAKAI (1/4)", 13, True, "#166534", "center")
+        title = make_label("RespiKidd Android", 26, True, "#0369A1", "center")
 
-    st.button("Mulai Sekarang ➔", on_click=go_to, args=(2,))
+        card = PastelCard("#FEFCE8")
+        card.add_widget(make_label("Halo Ayah & Bunda!", 20, True, "#0369A1", "center"))
+        card.add_widget(
+            make_label(
+                "RespiKidd bekerja 100% tanpa koneksi internet untuk skrining dini gejala bronkitis pada batita lewat suara batuk, dilengkapi kontak Puskesmas & RS rujukan seluruh Indonesia.",
+                15,
+                False,
+                "#475569",
+                "center",
+            )
+        )
 
-# ==============================================================================
-# LAYAR 2: PANDUAN CARA PENGGUNAAN
-# ==============================================================================
-elif st.session_state.page == 2:
-    st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Cara Pakai • 2/5</span></div>", unsafe_allow_html=True)
-    
-    st.markdown(CAT_DOCTOR_SVG, unsafe_allow_html=True)
-    
-    st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.35rem;'>Cara Menggunakan Aplikasi</h3>", unsafe_allow_html=True)
+        btn_start = make_button("Mulai Sekarang  >>", "#0284C7", lambda x: setattr(self.manager, "current", "guide"))
 
-    st.markdown("""
-    <div class="mobile-card card-blue">
-        <b style="color:#0369A1;">1. Isi Identitas & Wilayah</b><br>
-        <span style="font-size:0.88rem;">Data nama anak, orang tua, dan wilayah membantu paramedis Puskesmas/Posyandu mencatat pasien secara offline.</span>
-    </div>
-    <div class="mobile-card card-peach">
-        <b style="color:#C2410C;">2. Rekam / Unggah Suara Batuk</b><br>
-        <span style="font-size:0.88rem;">Dekatkan HP 15–20 cm saat anak batuk. AI langsung menganalisis di perangkat tanpa butuh kuota data.</span>
-    </div>
-    <div class="mobile-card card-mint">
-        <b style="color:#047857;">3. Hubungi Kontak Faskes / Kirim SMS</b><br>
-        <span style="font-size:0.88rem;">Akses direktori offline nomor RSUD, Puskesmas, darurat 119/112, serta kirim hasil via SMS atau file rekam medis.</span>
-    </div>
-    """, unsafe_allow_html=True)
+        root.add_widget(badge)
+        root.add_widget(title)
+        root.add_widget(card)
+        root.add_widget(btn_start)
+        self.add_widget(root)
 
-    col_b1, col_b2 = st.columns([1, 2])
-    with col_b1:
-        st.button("⬅ Kembali", on_click=go_to, args=(1,))
-    with col_b2:
-        st.button("Lanjut Cek Batuk ➔", on_click=go_to, args=(3,))
 
 # ==============================================================================
-# LAYAR 3: IDENTITAS PASIEN (3T) + REKAM / UNGGAH SUARA BATUK
+# LAYAR 2: PANDUAN PENGGUNAAN
 # ==============================================================================
-elif st.session_state.page == 3:
-    st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Data & Suara • 3/5</span></div>", unsafe_allow_html=True)
-    
-    st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.3rem;'>Data Anak & Suara Batuk</h3>", unsafe_allow_html=True)
+class GuideScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        scroll = ScrollView()
+        box = BoxLayout(orientation="vertical", padding=20, spacing=12, size_hint_y=None)
+        box.bind(minimum_height=box.setter("height"))
 
-    st.markdown("""
-    <div class="mobile-card card-yellow" style="padding:0.75rem 1rem; margin-bottom:0.6rem;">
-        <b style="color:#9A3412; font-size:0.88rem;">Identitas Pasien (Pendataan Offline 3T)</b><br>
-        <span style="font-size:0.8rem; color:#78350F;">Membantu bidan, perawat, atau dokter Puskesmas mendata pasien dengan cepat.</span>
-    </div>
-    """, unsafe_allow_html=True)
+        box.add_widget(make_label("Cara Pakai Aplikasi (2/4)", 18, True, "#0369A1", "center"))
 
-    child_name = st.text_input("Nama Lengkap Anak *", placeholder="Contoh: Budi Santoso")
-    c_id1, c_id2 = st.columns([1.4, 1])
-    with c_id1:
-        parent_name = st.text_input("Nama Orang Tua / Wali *", placeholder="Contoh: Ibu Siti")
-    with c_id2:
-        child_age = st.number_input("Usia (Bulan)", min_value=1, max_value=60, value=18)
+        c1 = PastelCard("#F0F9FF")
+        c1.add_widget(make_label("1. Isi Identitas & Wilayah", 16, True, "#0369A1"))
+        c1.add_widget(make_label("Data anak & wilayah membantu paramedis Puskesmas mencatat pasien secara offline.", 14))
+        box.add_widget(c1)
 
-    selected_region = st.selectbox("Pilih Provinsi / Wilayah Rujukan *", list(OFFLINE_FASKES_DB.keys()))
-    region_detail = st.text_input("Desa / Kecamatan / Puskesmas Setempat", placeholder="Contoh: Desa Cimenyan, Kab. Bandung")
+        c2 = PastelCard("#FFF7ED")
+        c2.add_widget(make_label("2. Rekam / Pilih File Audio Batuk", 16, True, "#C2410C"))
+        c2.add_widget(make_label("Dekatkan HP 15-20 cm saat anak batuk. AI memproses langsung di HP tanpa kuota.", 14))
+        box.add_widget(c2)
 
-    st.markdown("<p style='font-size:0.9rem; font-weight:800; color:#0369A1; margin-top:0.6rem; margin-bottom:0.2rem;'>Rekam atau Unggah Suara Batuk:</p>", unsafe_allow_html=True)
+        c3 = PastelCard("#ECFDF5")
+        c3.add_widget(make_label("3. Lihat Hasil & Kontak Rujukan", 16, True, "#047857"))
+        c3.add_widget(make_label("Akses nomor darurat 119/112, RSUD rujukan, dan simpan laporan teks di HP.", 14))
+        box.add_widget(c3)
 
-    tab1, tab2 = st.tabs(["Rekam Suara", "Unggah File"])
-    audio_data = None
+        box.add_widget(make_button("Lanjut Cek Batuk  >>", "#10B981", lambda x: setattr(self.manager, "current", "input")))
+        box.add_widget(make_button("<<  Kembali", "#64748B", lambda x: setattr(self.manager, "current", "welcome")))
 
-    with tab1:
-        rec = st.audio_input("Tekan ikon mic untuk merekam:")
-        if rec:
-            audio_data = rec
+        scroll.add_widget(box)
+        self.add_widget(scroll)
 
-    with tab2:
-        upl = st.file_uploader("Pilih file audio batuk:", type=["wav", "mp3", "ogg"])
-        if upl:
-            audio_data = upl
 
-    st.markdown("<p style='font-size:0.88rem; font-weight:700; color:#0369A1; margin-top:0.5rem; margin-bottom:0.2rem;'>Gejala Tambahan & Lingkungan (Opsional):</p>", unsafe_allow_html=True)
-    c_g1, c_g2 = st.columns(2)
-    with c_g1:
-        has_wheezing = st.checkbox("Napas ngik-ngik / berlendir")
-    with c_g2:
-        has_fever = st.checkbox("Demam / batuk > 3 hari")
-    noisy_env = st.checkbox("Aktifkan filter bising (jika ruangan ramai)", value=False)
+# ==============================================================================
+# LAYAR 3: INPUT DATA PASIEN & REKAM / PILIH AUDIO WAV
+# ==============================================================================
+class InputScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.selected_audio_path = ""
+        self.is_recording = False
 
-    if audio_data is not None:
-        st.audio(audio_data)
-        if st.button("Analisis Suara Offline ✨"):
-            if not child_name.strip() or not parent_name.strip():
-                st.warning("Mohon isi **Nama Anak** dan **Nama Orang Tua / Wali** terlebih dahulu.")
+        scroll = ScrollView()
+        box = BoxLayout(orientation="vertical", padding=20, spacing=10, size_hint_y=None)
+        box.bind(minimum_height=box.setter("height"))
+
+        box.add_widget(make_label("Data Anak & Suara Batuk (3/4)", 18, True, "#0369A1", "center"))
+
+        self.in_child = TextInput(hint_text="Nama Lengkap Anak *", multiline=False, size_hint_y=None, height=44)
+        self.in_parent = TextInput(hint_text="Nama Orang Tua / Wali *", multiline=False, size_hint_y=None, height=44)
+        self.in_age = TextInput(hint_text="Usia Anak (Bulan), contoh: 18", input_filter="int", multiline=False, size_hint_y=None, height=44)
+        self.in_region = Spinner(
+            text="Pilih Wilayah Rujukan...",
+            values=list(OFFLINE_FASKES_DB.keys()),
+            size_hint_y=None,
+            height=46,
+        )
+        self.in_village = TextInput(hint_text="Desa / Kecamatan / Puskesmas", multiline=False, size_hint_y=None, height=44)
+
+        box.add_widget(self.in_child)
+        box.add_widget(self.in_parent)
+        box.add_widget(self.in_age)
+        box.add_widget(self.in_region)
+        box.add_widget(self.in_village)
+
+        # Gejala Tambahan
+        row_g1 = BoxLayout(orientation="horizontal", size_hint_y=None, height=36)
+        self.chk_wheezing = CheckBox(size_hint_x=None, width=40)
+        row_g1.add_widget(self.chk_wheezing)
+        row_g1.add_widget(make_label("Napas ngik-ngik / berlendir", 14))
+        box.add_widget(row_g1)
+
+        row_g2 = BoxLayout(orientation="horizontal", size_hint_y=None, height=36)
+        self.chk_fever = CheckBox(size_hint_x=None, width=40)
+        row_g2.add_widget(self.chk_fever)
+        row_g2.add_widget(make_label("Demam / batuk > 3 hari", 14))
+        box.add_widget(row_g2)
+
+        # Kontrol Audio Offline
+        self.lbl_audio = make_label("Belum ada file audio (.wav) dipilih.", 13, True, "#B45309")
+        box.add_widget(self.lbl_audio)
+
+        self.btn_rec = make_button("Rekam Suara Batuk (Mic HP)", "#F59E0B", self.toggle_record)
+        btn_pick = make_button("Pilih File Audio (.wav) dari HP", "#6366F1", self.open_file_picker)
+        btn_analyze = make_button("Analisis Suara Offline Sekarang", "#0284C7", self.run_analysis)
+
+        box.add_widget(self.btn_rec)
+        box.add_widget(btn_pick)
+        box.add_widget(btn_analyze)
+        box.add_widget(make_button("<<  Kembali", "#64748B", lambda x: setattr(self.manager, "current", "guide")))
+
+        scroll.add_widget(box)
+        self.add_widget(scroll)
+
+    def show_msg(self, title, msg):
+        content = BoxLayout(orientation="vertical", padding=12, spacing=10)
+        content.add_widget(make_label(msg, 14))
+        btn_ok = make_button("Tutup", "#0284C7")
+        content.add_widget(btn_ok)
+        popup = Popup(title=title, content=content, size_hint=(0.88, 0.4))
+        btn_ok.bind(on_press=popup.dismiss)
+        popup.open()
+
+    def toggle_record(self, instance):
+        if not HAS_PLYER_AUDIO:
+            self.show_msg("Info Mic", "Fitur rekam langsung hanya aktif di HP Android. Silakan pilih file .wav.")
+            return
+        try:
+            rec_path = os.path.join(App.get_running_app().user_data_dir, "rekaman_batuk.wav")
+            if not self.is_recording:
+                audio.file_path = rec_path
+                audio.start()
+                self.is_recording = True
+                self.btn_rec.text = "Hentikan Rekaman (Sedang Merekam...)"
+                self.btn_rec.background_color = get_color_from_hex("#E11D48")
             else:
-                with st.spinner("Menganalisis gelombang suara secara offline..."):
-                    try:
-                        model = load_respikidd_model()
-                        start_time = time.time()
+                audio.stop()
+                self.is_recording = False
+                self.selected_audio_path = rec_path
+                self.lbl_audio.text = f"Terekam: {os.path.basename(rec_path)}"
+                self.btn_rec.text = "Rekam Ulang Suara Batuk"
+                self.btn_rec.background_color = get_color_from_hex("#F59E0B")
+        except Exception as e:
+            self.show_msg("Kendala Mic", f"Gagal merekam audio: {e}")
 
-                        img_input, spec_info, err_msg = preprocess_and_extract_mel(
-                            audio_data, use_noise_reduce=noisy_env
-                        )
+    def open_file_picker(self, instance):
+        content = BoxLayout(orientation="vertical", spacing=8, padding=8)
+        chooser = FileChooserListView(path="/sdcard" if os.path.exists("/sdcard") else ".", filters=["*.wav"])
+        btn_select = make_button("Gunakan File Ini", "#10B981")
+        content.add_widget(chooser)
+        content.add_widget(btn_select)
 
-                        if err_msg:
-                            st.warning(err_msg)
-                        else:
-                            mel_spec_db, sr = spec_info
-                            # Model dilatih dengan 0 = Bronkitis, 1 = Non-Bronkitis
-                            raw_prob = float(model.predict(img_input, verbose=0)[0][0])
-                            bronchitis_score = 1.0 - raw_prob
+        popup = Popup(title="Pilih File Audio (.wav)", content=content, size_hint=(0.92, 0.8))
 
-                            # Penyesuaian gejala klinis ringan tanpa mendominasi keputusan akustik AI
-                            if has_wheezing:
-                                bronchitis_score = min(1.0, bronchitis_score + 0.05)
-                            if has_fever:
-                                bronchitis_score = min(1.0, bronchitis_score + 0.03)
+        def on_select(_):
+            if chooser.selection:
+                self.selected_audio_path = chooser.selection[0]
+                self.lbl_audio.text = f"File dipilih: {os.path.basename(self.selected_audio_path)}"
+                popup.dismiss()
 
-                            response_time = round(time.time() - start_time, 2)
+        btn_select.bind(on_press=on_select)
+        popup.open()
 
-                            st.session_state.result_data = {
-                                "child_name": child_name.strip(),
-                                "parent_name": parent_name.strip(),
-                                "child_age": child_age,
-                                "selected_region": selected_region,
-                                "region_detail": region_detail.strip(),
-                                "has_wheezing": has_wheezing,
-                                "has_fever": has_fever,
-                                "timestamp": datetime.now().strftime("%d-%m-%Y %H:%M"),
-                                "bronchitis_score": bronchitis_score,
-                                "raw_prob": raw_prob,
-                                "time": response_time,
-                                "mel_db": mel_spec_db,
-                                "sr": sr
-                            }
-                            st.session_state.page = 4
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f"Terjadi kendala saat memproses audio: {e}")
+    def run_analysis(self, instance):
+        child = self.in_child.text.strip()
+        parent = self.in_parent.text.strip()
+        if not child or not parent:
+            self.show_msg("Data Belum Lengkap", "Mohon isi Nama Anak dan Nama Orang Tua terlebih dahulu.")
+            return
+        if not self.selected_audio_path or not os.path.exists(self.selected_audio_path):
+            self.show_msg("Audio Belum Ada", "Silakan rekam suara batuk atau pilih file .wav terlebih dahulu.")
+            return
 
-    st.write("")
-    st.button("⬅ Kembali ke Panduan", on_click=go_to, args=(2,))
+        try:
+            start_t = time.time()
+            img_input, err_msg = extract_mel_spectrogram_offline(self.selected_audio_path)
+            if err_msg:
+                self.show_msg("Kualitas Suara", err_msg)
+                return
+
+            raw_prob = predict_with_tflite(img_input, "respikidd_model.tflite")
+            bronchitis_score = 1.0 - raw_prob
+            if self.chk_wheezing.active:
+                bronchitis_score = min(1.0, bronchitis_score + 0.05)
+            if self.chk_fever.active:
+                bronchitis_score = min(1.0, bronchitis_score + 0.03)
+
+            elapsed = round(time.time() - start_t, 2)
+            result_screen = self.manager.get_screen("result")
+            result_screen.display_result(
+                {
+                    "child_name": child,
+                    "parent_name": parent,
+                    "child_age": self.in_age.text.strip() or "-",
+                    "region": self.in_region.text,
+                    "village": self.in_village.text.strip() or "-",
+                    "wheezing": "Ya" if self.chk_wheezing.active else "Tidak",
+                    "fever": "Ya" if self.chk_fever.active else "Tidak",
+                    "score": bronchitis_score,
+                    "time": elapsed,
+                    "timestamp": datetime.now().strftime("%d-%m-%Y %H:%M"),
+                }
+            )
+            self.manager.current = "result"
+        except Exception as e:
+            self.show_msg("Error Analisis", f"Terjadi kendala: {e}")
+
 
 # ==============================================================================
-# LAYAR 4: HASIL ANALISIS AI, DIREKTORI KONTAK OFFLINE & LAPORAN PARAMEDIS
+# LAYAR 4: HASIL SKRINING AI, DIREKTORI FASKES OFFLINE & SIMPAN LAPORAN
 # ==============================================================================
-elif st.session_state.page == 4:
-    st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Hasil Skrining • 4/5</span></div>", unsafe_allow_html=True)
-    
-    res = st.session_state.result_data
+class ResultScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.latest_report_text = ""
+        self.scroll = ScrollView()
+        self.box = BoxLayout(orientation="vertical", padding=20, spacing=12, size_hint_y=None)
+        self.box.bind(minimum_height=self.box.setter("height"))
+        self.scroll.add_widget(self.box)
+        self.add_widget(self.scroll)
 
-    if res is not None:
-        wilayah_tampil = res["region_detail"] if res["region_detail"] else (
-            res["selected_region"] if "Pilih Wilayah" not in res["selected_region"] else "-"
+    def display_result(self, data):
+        self.box.clear_widgets()
+        self.box.add_widget(make_label("Hasil Skrining Offline (4/4)", 18, True, "#0369A1", "center"))
+
+        pct = round(data["score"] * 100, 1)
+        is_high = data["score"] >= 0.50
+
+        card_res = PastelCard("#FFF1F2" if is_high else "#ECFDF5")
+        status_txt = "TERDETEKSI INDIKASI GEJALA BRONKITIS" if is_high else "TIDAK TERDETEKSI GEJALA BRONKITIS"
+        status_col = "#BE123C" if is_high else "#047857"
+
+        card_res.add_widget(make_label(status_txt, 17, True, status_col, "center"))
+        card_res.add_widget(make_label(f"Skor Risiko AI: {pct}% (Waktu proses: {data['time']} dtk)", 15, True, "#1E293B", "center"))
+        card_res.add_widget(
+            make_label(
+                "Catatan: Hasil ini merupakan skrining awal berbasis AI offline, bukan diagnosis medis final. Segera konsultasikan ke dokter/Puskesmas.",
+                13,
+                False,
+                "#475569",
+            )
         )
+        self.box.add_widget(card_res)
 
-        # 1. Kartu Identitas Pasien
-        st.markdown(f"""
-        <div class="mobile-card card-blue" style="padding:0.85rem 1rem; margin-bottom:0.7rem;">
-            <div style="font-size:0.82rem; color:#0369A1; font-weight:800;">REKAM SKRINING PASIEN (OFFLINE)</div>
-            <div style="font-size:0.88rem; margin-top:0.25rem;">
-                <b>Anak:</b> {res['child_name']} ({res['child_age']} bln)<br>
-                <b>Orang Tua/Wali:</b> {res['parent_name']}<br>
-                <b>Wilayah:</b> {wilayah_tampil}<br>
-                <b>Waktu:</b> {res['timestamp']}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # 2. Kartu Hasil Analisis AI (Threshold 0.52 untuk keseimbangan sensitivitas & spesifisitas)
-        b_score = res["bronchitis_score"]
-        if b_score >= 0.52:
-            conf = b_score * 100
-            status_label = "INDIKASI GEJALA BRONKITIS"
-            st.markdown(f"""
-            <div class="mobile-card card-pink" style="text-align:center;">
-                <h3 style="color:#BE123C; margin:0;">Indikasi Gejala Bronkitis</h3>
-                <p style="font-size:0.88rem; margin-top:0.4rem;">
-                    Pola suara mengarah pada batuk berlendir/menyempit. Segera hubungi atau bawa <b>{res['child_name']}</b> ke Puskesmas/RS rujukan di bawah ini.
-                </p>
-                <b style="color:#9F1239; font-size:0.85rem;">Keyakinan AI: {conf:.1f}% • Waktu: {res['time']} dtk</b>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            conf = (1.0 - b_score) * 100
-            status_label = "POLA BATUK NON-BRONKITIS"
-            st.markdown(f"""
-            <div class="mobile-card card-mint" style="text-align:center;">
-                <h3 style="color:#047857; margin:0;">Pola Batuk Non-Bronkitis</h3>
-                <p style="font-size:0.88rem; margin-top:0.4rem;">
-                    Tidak terdeteksi ciri khas bronkitis pada sampel suara ini. Terus pantau kondisi dan kecukupan cairan si kecil.
-                </p>
-                <b style="color:#065F46; font-size:0.85rem;">Keyakinan AI: {conf:.1f}% • Waktu: {res['time']} dtk</b>
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.caption(f"Skor Mentah AI (0=Bronkitis, 1=Non-Bronkitis): {res['raw_prob']:.4f}")
-
-        # 3. Direktori Kontak Offline
-        st.markdown("""
-        <div class="mobile-card card-peach" style="padding:0.95rem 1rem; margin-bottom:0.6rem;">
-            <b style="color:#C2410C; font-size:0.95rem;">Direktori Kontak Medis Offline</b><br>
-            <span style="font-size:0.82rem; color:#7C2D12;">
-                Tekan tombol untuk menelepon langsung via jaringan seluler (tanpa kuota internet):
-            </span>
-            <a href="tel:119" class="action-btn btn-red">Darurat Medis Kemenkes (119)</a>
-            <a href="tel:112" class="action-btn btn-red" style="background:linear-gradient(135deg, #EA580C 0%, #C2410C 100%);">Panggilan Darurat Nasional (112)</a>
-            <a href="tel:1500567" class="action-btn btn-amber">Halo Kemenkes RI (1500-567)</a>
-        </div>
-        """, unsafe_allow_html=True)
-
-        wilayah_pilih = st.selectbox(
-            "Lihat Kontak RSUD / Puskesmas Wilayah:",
-            list(OFFLINE_FASKES_DB.keys()),
-            index=list(OFFLINE_FASKES_DB.keys()).index(res["selected_region"])
+        # Ringkasan Pasien
+        card_info = PastelCard("#F0F9FF")
+        info_str = (
+            f"Waktu: {data['timestamp']}\n"
+            f"Nama Anak: {data['child_name']} ({data['child_age']} bln)\n"
+            f"Orang Tua: {data['parent_name']}\n"
+            f"Wilayah: {data['region']} ({data['village']})\n"
+            f"Napas Ngik-ngik: {data['wheezing']} | Demam >3 hari: {data['fever']}"
         )
+        card_info.add_widget(make_label("Ringkasan Data Pasien", 15, True, "#0369A1"))
+        card_info.add_widget(make_label(info_str, 14))
+        self.box.add_widget(card_info)
 
-        faskes_list = OFFLINE_FASKES_DB.get(wilayah_pilih, [])
-        if faskes_list:
-            for f in faskes_list:
-                st.markdown(f"""
-                <div class="mobile-card" style="padding:0.8rem 1rem; margin-bottom:0.5rem; border-color:#BAE6FD;">
-                    <b style="color:#0369A1; font-size:0.9rem;">{f['nama']}</b><br>
-                    <span style="font-size:0.8rem; color:#64748B;">{f['ket']} • Telp: <b>{f['telp']}</b></span>
-                    <a href="tel:{f['telp']}" class="action-btn btn-green" style="margin-top:0.4rem; margin-bottom:0;">Telepon {f['nama']}</a>
-                </div>
-                """, unsafe_allow_html=True)
+        self.latest_report_text = f"=== LAPORAN SKRINING RESPIKIDD (OFFLINE) ===\n{info_str}\nHasil AI: {status_txt} ({pct}%)\n"
 
-        # 4. Kirim via SMS & Simpan Laporan Rekam Medis (.txt)
-        gejala_list = []
-        if res["has_wheezing"]:
-            gejala_list.append("Napas ngik-ngik/berlendir")
-        if res["has_fever"]:
-            gejala_list.append("Demam/batuk > 3 hari")
-        gejala_str = ", ".join(gejala_list) if gejala_list else "Tidak ada gejala tambahan"
+        # Daftar Kontak Faskes Offline Sesuai Wilayah
+        region_key = data["region"] if data["region"] in OFFLINE_FASKES_DB else "Layanan Darurat Nasional (24 Jam)"
+        faskes_list = OFFLINE_FASKES_DB.get(region_key, []) + OFFLINE_FASKES_DB["Layanan Darurat Nasional (24 Jam)"]
 
-        laporan_teks = f"""LAPORAN SKRINING AWAL RESPIKIDD (OFFLINE)
-========================================
-Waktu Pemeriksaan : {res['timestamp']}
-Nama Anak         : {res['child_name']}
-Usia Anak         : {res['child_age']} bulan
-Nama Orang Tua    : {res['parent_name']}
-Wilayah           : {wilayah_tampil}
-Gejala Tambahan   : {gejala_str}
-----------------------------------------
-Hasil Skrining AI : {status_label}
-Tingkat Keyakinan : {conf:.1f}%
-----------------------------------------
-Catatan: Hasil skrining awal suara batuk untuk membantu pemeriksaan bidan/dokter."""
+        card_faskes = PastelCard("#FEFCE8")
+        card_faskes.add_widget(make_label(f"Kontak Faskes Offline ({region_key})", 15, True, "#9A3412"))
+        for nama, telp, ket in faskes_list[:5]:
+            card_faskes.add_widget(make_label(f"• {nama}\n  Telp: {telp} ({ket})", 13, False, "#334155"))
+        self.box.add_widget(card_faskes)
 
-        sms_encoded = urllib.parse.quote(laporan_teks)
-        st.markdown(f"""
-        <a href="sms:?body={sms_encoded}" class="action-btn btn-blue">Kirim Laporan via SMS (Tanpa Kuota Data)</a>
-        """, unsafe_allow_html=True)
+        self.box.add_widget(make_button("Simpan Laporan Rekam Medis (.txt)", "#10B981", self.save_report))
+        self.box.add_widget(make_button("Periksa Anak Lainnya", "#0284C7", lambda x: setattr(self.manager, "current", "input")))
 
-        st.download_button(
-            label="Simpan Laporan Rekam Medis ke HP (.txt)",
-            data=laporan_teks,
-            file_name=f"Skrining_RespiKidd_{res['child_name'].replace(' ', '_')}.txt",
-            mime="text/plain"
-        )
+    def save_report(self, instance):
+        save_dir = "/sdcard/Download" if os.path.exists("/sdcard/Download") else App.get_running_app().user_data_dir
+        fname = f"Laporan_RespiKidd_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        full_path = os.path.join(save_dir, fname)
+        with open(full_path, "w", encoding="utf-8") as f:
+            f.write(self.latest_report_text)
+        instance.text = f"Tersimpan di: {fname}"
 
-        # 5. Grafik Mel-Spectrogram
-        st.markdown("<p style='font-size:0.85rem; font-weight:800; color:#0369A1; margin-top:0.6rem; margin-bottom:0.2rem;'>Grafik Mel-Spectrogram:</p>", unsafe_allow_html=True)
-        fig, ax = plt.subplots(figsize=(5, 2.3))
-        librosa.display.specshow(res["mel_db"], sr=res["sr"], x_axis='time', y_axis='mel', ax=ax, cmap='magma')
-        ax.set_xlabel("Waktu (detik)", fontsize=8)
-        ax.set_ylabel("Frekuensi", fontsize=8)
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close(fig)
 
-    col_r1, col_r2 = st.columns([1, 1.4])
-    with col_r1:
-        st.button("Cek Ulang", on_click=go_to, args=(3,))
-    with col_r2:
-        st.button("Baca Edukasi ➔", on_click=go_to, args=(5,))
+class RespiKiddApp(App):
+    def build(self):
+        sm = ScreenManager()
+        sm.add_widget(WelcomeScreen(name="welcome"))
+        sm.add_widget(GuideScreen(name="guide"))
+        sm.add_widget(InputScreen(name="input"))
+        sm.add_widget(ResultScreen(name="result"))
+        return sm
 
-# ==============================================================================
-# LAYAR 5: EDUKASI SINGKAT (KUCING PINTAR BERKACAMATA)
-# ==============================================================================
-elif st.session_state.page == 5:
-    st.markdown(TOP_DOODLE_SVG, unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center;'><span class='step-indicator'>Edukasi Singkat • 5/5</span></div>", unsafe_allow_html=True)
-    
-    st.markdown(CAT_SMART_SVG, unsafe_allow_html=True)
-    
-    st.markdown("<h3 style='text-align:center; margin-top:0; font-size:1.35rem;'>Info Singkat untuk Orang Tua</h3>", unsafe_allow_html=True)
 
-    st.markdown("""
-    <div class="mobile-card card-blue">
-        <b style="color:#0369A1;">Kenapa Batita Rentan?</b><br>
-        <span style="font-size:0.86rem;">Saluran napas anak di bawah 3 tahun masih sempit, sehingga peradangan mudah memicu lendir berlebih dan batuk berat.</span>
-    </div>
-    <div class="mobile-card card-pink">
-        <b style="color:#BE123C;">Tanda Bahaya (Segera ke Dokter)</b><br>
-        <span style="font-size:0.86rem;">Napas berbunyi ngik-ngik (<i>wheezing</i>), napas sangat cepat saat tenang, atau anak tampak lemas dan demam tinggi.</span>
-    </div>
-    <div class="mobile-card card-peach">
-        <b style="color:#C2410C;">Jauhkan Asap Rokok</b><br>
-        <span style="font-size:0.86rem;">Asap rokok di rumah memperparah iritasi saluran pernapasan batita. Jaga udara rumah tetap bersih.</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col_e1, col_e2 = st.columns([1, 1.3])
-    with col_e1:
-        st.button("⬅ Hasil", on_click=go_to, args=(4,))
-    with col_e2:
-        st.button("Kembali ke Awal", on_click=go_to, args=(1,))
+if __name__ == "__main__":
+    RespiKiddApp().run()
