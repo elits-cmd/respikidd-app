@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0284C7" />
+  <title>RespiKidd Offline</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { margin: 0; background: #E0F7FA; color: #1E293B; padding: 16px; }
+    .container { max-width: 480px; margin: 0 auto; }
+    .badge { background: #DCFCE7; color: #166534; font-weight: 700; font-size: 12px; padding: 6px 12px; border-radius: 999px; display: inline-block; }
+    .header { text-align: center; margin-bottom: 16px; }
+    .header h1 { color: #0369A1; margin: 8px 0 4px; font-size: 26px; }
+    .card { background: #FFFFFF; border-radius: 20px; padding: 18px; margin-bottom: 14px; box-shadow: 0 4px 12px rgba(2,132,199,0.08); }
+    .card.yellow { background: #FEFCE8; }
+    .card.blue { background: #F0F9FF; }
+    .card.green { background: #ECFDF5; }
+    .card.red { background: #FFF1F2; }
+    h2 { margin: 0 0 10px; font-size: 18px; color: #0369A1; }
+    p { margin: 0 0 10px; font-size: 14px; line-height: 1.5; color: #475569; }
+    label { display: block; font-size: 13px; font-weight: 600; margin: 10px 0 4px; color: #334155; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; padding: 12px; border: 1.5px solid #CBD5E1; border-radius: 12px; font-size: 15px; background: #FFF;
+    }
+    .check-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 14px; }
+    .check-row input { width: 18px; height: 18px; }
+    .btn {
+      width: 100%; padding: 14px; border: none; border-radius: 14px; font-size: 15px; font-weight: 700;
+      color: #FFF; cursor: pointer; margin-top: 10px; transition: opacity 0.2s;
+    }
+    .btn:active { opacity: 0.85; }
+    .btn-primary { background: #0284C7; }
+    .btn-success { background: #10B981; }
+    .btn-warn { background: #F59E0B; }
+    .btn-danger { background: #E11D48; }
+    .btn-indigo { background: #6366F1; }
+    .btn-gray { background: #64748B; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .status-box { padding: 10px; border-radius: 10px; background: #FEF3C7; color: #92400E; font-size: 13px; font-weight: 600; margin-top: 10px; }
+    .faskes-item { border-bottom: 1px solid #E2E8F0; padding: 8px 0; font-size: 13px; }
+    .faskes-item:last-child { border-bottom: none; }
+    .call-link { display: inline-block; margin-top: 4px; color: #0284C7; font-weight: 700; text-decoration: none; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <span class="badge">100% MODE OFFLINE SIAP PAKAI</span>
+    <h1>RespiKidd Android</h1>
+  </div>
+
+  <div id="step1" class="step active">
+    <div class="card yellow" style="text-align:center;">
+      <h2>Halo Ayah & Bunda!</h2>
+      <p>RespiKidd bekerja <b>100% tanpa koneksi internet</b> untuk skrining dini gejala bronkitis pada batita melalui suara batuk, dilengkapi kontak Puskesmas & RS rujukan seluruh Indonesia.</p>
+      <button class="btn btn-primary" onclick="goStep(2)">Mulai Sekarang &raquo;</button>
+    </div>
+  </div>
+
+  <div id="step2" class="step">
+    <div class="card blue">
+      <h2>1. Isi Identitas & Wilayah</h2>
+      <p>Data anak dan wilayah membantu paramedis Puskesmas mencatat pasien secara offline.</p>
+    </div>
+    <div class="card yellow">
+      <h2>2. Rekam / Pilih Audio Batuk</h2>
+      <p>Dekatkan HP 15–20 cm saat anak batuk. AI memproses langsung di HP tanpa kuota internet.</p>
+    </div>
+    <div class="card green">
+      <h2>3. Lihat Hasil & Kontak Rujukan</h2>
+      <p>Akses nomor darurat 119/112, RSUD rujukan, dan simpan laporan rekam medis di HP.</p>
+    </div>
+    <button class="btn btn-success" onclick="goStep(3)">Lanjut Cek Batuk &raquo;</button>
+    <button class="btn btn-gray" onclick="goStep(1)">&laquo; Kembali</button>
+  </div>
+
+  <div id="step3" class="step">
+    <div class="card">
+      <h2>Data Anak & Suara Batuk</h2>
+      <label>Nama Lengkap Anak *</label>
+      <input type="text" id="childName" placeholder="Contoh: Budi Santoso" />
+
+      <label>Nama Orang Tua / Wali *</label>
+      <input type="text" id="parentName" placeholder="Contoh: Siti Aminah" />
+
+      <label>Usia Anak (Bulan)</label>
+      <input type="number" id="childAge" placeholder="Contoh: 18" />
+
+      <label>Wilayah Rujukan</label>
+      <select id="regionSelect"></select>
+
+      <label>Desa / Kecamatan / Puskesmas</label>
+      <input type="text" id="villageInput" placeholder="Contoh: Cimenyan" />
+
+      <div class="check-row">
+        <input type="checkbox" id="chkWheezing" />
+        <span>Napas ngik-ngik / berlendir</span>
+      </div>
+      <div class="check-row">
+        <input type="checkbox" id="chkFever" />
+        <span>Demam / batuk lebih dari 3 hari</span>
+      </div>
+
+      <div id="audioStatus" class="status-box">Belum ada suara batuk direkam atau dipilih.</div>
+
+      <button id="btnRecord" class="btn btn-warn" onclick="toggleRecording()">Rekam Suara Batuk (Mic HP)</button>
+      <input type="file" id="wavPicker" accept=".wav,audio/wav" style="display:none" onchange="handleFileUpload(event)" />
+      <button class="btn btn-indigo" onclick="document.getElementById('wavPicker').click()">Pilih File Audio (.wav) dari HP</button>
+      <button class="btn btn-primary" onclick="runOfflineAnalysis()">Analisis Suara Offline Sekarang</button>
+      <button class="btn btn-gray" onclick="goStep(2)">&laquo; Kembali</button>
+    </div>
+  </div>
+
+  <div id="step4" class="step">
+    <div id="resultCard" class="card">
+      <h2 id="resTitle" style="text-align:center;"></h2>
+      <p id="resScore" style="text-align:center; font-weight:700; font-size:16px; color:#0F172A;"></p>
+      <p style="font-size:12px;">Catatan: Hasil ini merupakan skrining awal berbasis AI offline, bukan diagnosis medis final. Segera konsultasikan ke dokter/Puskesmas.</p>
+    </div>
+
+    <div class="card blue">
+      <h2>Ringkasan Data Pasien</h2>
+      <p id="patientSummary" style="white-space: pre-line;"></p>
+    </div>
+
+    <div class="card yellow">
+      <h2>Kontak Faskes Offline</h2>
+      <div id="faskesList"></div>
+    </div>
+
+    <button class="btn btn-success" onclick="downloadReport()">Simpan Laporan Rekam Medis (.txt)</button>
+    <button class="btn btn-primary" onclick="goStep(3)">Periksa Anak Lainnya</button>
+  </div>
+</div>
+
+<script src="weights.js"></script>
+<script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
+</body>
+</html>
